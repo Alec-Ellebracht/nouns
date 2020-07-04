@@ -16,12 +16,15 @@ func init() {
 
 func main() {
 
-	http.HandleFunc("/", index)
-	http.HandleFunc("/submit", submitHandler)
-	http.HandleFunc("/guess", guessHandler)
+	mux := http.NewServeMux()
 
-	http.Handle("/resource/", http.StripPrefix("/resource/", http.FileServer(http.Dir("static"))))
-	http.ListenAndServe(":8080", nil)
+	mux.HandleFunc("/", index)
+	// mux.HandleFunc("/ws", wsEndpoint)
+	mux.HandleFunc("/submit", submitHandler)
+	mux.HandleFunc("/guess", guessHandler)
+
+	mux.Handle("/resource/", http.StripPrefix("/resource/", http.FileServer(http.Dir("static"))))
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func index(res http.ResponseWriter, req *http.Request) {
