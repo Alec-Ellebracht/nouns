@@ -1,0 +1,28 @@
+{{template "header"}}
+
+<body>
+    <h1>Nouns</h1>
+    <hr>
+    <div id="guess-result"></div>
+    <script src="/resource/js/guess.js"></script>
+    {{if .}}
+    <form method="post" action="/guess" onsubmit="event.preventDefault();">
+        <fieldset class="uk-fieldset">
+    
+            <legend class="uk-legend">Guess the {{ .PrintType }}</legend>
+    
+            <div class="uk-margin uk-form-width-large">
+                <label for="guess">Guess:</label>
+                <input type="text" name="guess" placeholder="Whats your guess" required class="uk-input"><br>
+            </div>
+    
+            <div class="uk-margin uk-form-width-large">
+                <input id="guess-btn" type="submit" class="uk-button uk-button-primary">
+            </div>
+    
+        </fieldset>
+    </form>
+    {{end}}
+</body>
+
+{{template "footer"}}

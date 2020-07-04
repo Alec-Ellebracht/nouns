@@ -1,0 +1,35 @@
+{{define "submit"}}
+    {{if not .}}
+    <form method="post" action="/submit">
+
+        <fieldset class="uk-fieldset">
+
+            <legend class="uk-legend">Submit a Person/Place/Thing</legend>
+
+            <div class="uk-margin uk-form-width-large">
+                <input type="radio" id="person" name="nounType" value="0" class="uk-radio">
+                <label for="person">Person</label><br>
+                <input type="radio" id="place" name="nounType" value="1" class="uk-radio">
+                <label for="place">Place</label><br>
+                <input type="radio" id="thing" name="nounType" value="2" class="uk-radio">
+                <label for="thing">Thing</label><br>
+            </div>
+
+            <div class="uk-margin uk-form-width-large">
+                <label for="noun">Noun:</label>
+                <input type="text" name="noun" placeholder="Person Place or Thing" required class="uk-input"><br>
+            </div>
+
+            <div class="uk-margin uk-form-width-large">
+                <label for="hint">Hint:</label>
+                <input type="text" name="hint" placeholder="Give us a clue" required class="uk-input"><br>
+            </div>
+
+            <div class="uk-margin uk-form-width-large">
+                <input type="submit" class="uk-button uk-button-primary">
+            </div>
+
+        </fieldset>
+    </form>
+    {{end}}
+{{end}}
