@@ -94,10 +94,10 @@ func guessHandler(res http.ResponseWriter, req *http.Request) {
 // Handles incoming websockets requests
 func socketHandler(res http.ResponseWriter, req *http.Request) {
 
-	room, ok := getRoom(1)
+	room, ok := GetRoom(1)
 	if !ok {
 
-		room = createRoom()
+		room = CreateRoom()
 		fmt.Println("Created room", room.id)
 	}
 

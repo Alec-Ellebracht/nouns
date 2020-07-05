@@ -67,7 +67,7 @@ func (room *Room) run() {
 }
 
 // Creates and tracks a new room
-func createRoom() *Room {
+func CreateRoom() *Room {
 
 	// increment the room identifier
 	atomic.AddInt64(&lastRoomID, 1)
@@ -90,7 +90,7 @@ func createRoom() *Room {
 }
 
 // Checks for a specifc room
-func getRoom(id int64) (*Room, bool) {
+func GetRoom(id int64) (*Room, bool) {
 
 	if _, ok := hotel[id]; ok {
 
