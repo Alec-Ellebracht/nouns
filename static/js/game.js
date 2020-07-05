@@ -1,35 +1,51 @@
 
 $(document).ready(function () { 
 
-    var conn;
+    // Makes a websocket connection
+    let conn;
+    function connect () {
+        
+        if (window['WebSocket']) {
+    
+            this.conn = new WebSocket('ws://' + document.location.host + '/ws');
+    
+            this.conn.onopen = evt => {
 
-    if (window["WebSocket"]) {
+                console.log('Websocket opened..', evt);
+                $('#conn-result').html('<b>Connected to host.</b>');
+            };
+    
+            this.conn.onerror = evt => {
 
-        conn = new WebSocket("ws://" + document.location.host + "/ws");
+                console.error('Websocket error..', evt.data);
+                $('#conn-result').html('<b>Uh oh, something went wrong.</b>');
+            };
+    
+            this.conn.onclose = evt => {
 
-        conn.onopen = function (evt) {
-            console.log('on open..', evt);
-            $('#conn-result').html("<b>Connected to host.</b>");
-        };
+                console.log('Websocket closed..', evt);
+                $('#conn-result').html('<b>Connection to host closed.</b>');
+            };
+    
+            this.conn.onmessage = evt => {
 
-        conn.onerror = function (evt) {
-            console.error('on error..', evt.data);
-            $('#conn-result').html("<b>"+evt.data+"</b>");
-        };
-
-        conn.onclose = function (evt) {
-            console.log('on close..', evt);
-            $('#conn-result').html("<b>Connection to host closed.</b>");
-        };
-
-        conn.onmessage = function (evt) {
-            console.log('on message..', evt.data);
-            $('#conn-result').html("<b>"+evt.data+"</b>");
-        };
-
-    } else {
-
-        $('#conn-result').html("<b>Oh poop your browser does not support WebSockets.</b>");
+                console.log('Message from host..', evt.data);
+                $('#conn-result').html('<b>'+evt.data+'</b>');
+            };
+    
+        } else {
+    
+            $('#conn-result').html('<b>Oh poop your browser does not support WebSockets.</b>');
+        }
     }
 
+    // Creates a new room
+    $('#create-btn').click(function () {
+        connect();
+    });
+
+    // Joins an existing room
+    $('#join-btn').click(function () {
+        connect();
+    });
 });

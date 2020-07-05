@@ -1,0 +1,46 @@
+{{template "header"}}
+
+<body>
+    <h1>Nouns</h1>
+    <hr>
+
+    <form method="post" action="/join" onsubmit="event.preventDefault();">
+        <fieldset class="uk-fieldset">
+    
+            <legend class="uk-legend">Leave room number blank to create a room.</legend>
+    
+            <div class="uk-margin uk-form-width-large">
+                <label for="room">Room:</label>
+                <input type="text" 
+                    name="room" 
+                    placeholder="Room Number" 
+                    class="uk-input"><br>
+            </div>
+
+            <div class="uk-margin uk-form-width-large">
+                <label for="nickname">Name:</label>
+                <input type="text" 
+                    name="nickname" 
+                    placeholder="Name" 
+                    class="uk-input" 
+                    required><br>
+            </div>
+    
+            <div class="uk-margin uk-form-width-large">
+                <button id="create-btn" 
+                    type="submit" 
+                    value="create" 
+                    class="uk-button uk-button-primary">Create</button>
+                    
+                <button id="join-btn" 
+                    type="submit" 
+                    value="join" 
+                    class="uk-button uk-button-primary">Join</button>
+            </div>
+    
+        </fieldset>
+    </form>
+
+</body>
+
+{{template "footer"}}

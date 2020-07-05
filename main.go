@@ -25,6 +25,7 @@ func main() {
 	// route handlers
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/404", notfoundHandler)
+	mux.HandleFunc("/join", joinHandler)
 	mux.HandleFunc("/ws", socketHandler)
 	mux.HandleFunc("/submit", submitHandler)
 	mux.HandleFunc("/guess", guessHandler)
@@ -69,6 +70,28 @@ func submitHandler(res http.ResponseWriter, req *http.Request) {
 	SubmitNoun(n)
 
 	http.Redirect(res, req, "/guess", http.StatusFound)
+}
+
+// Handles the join page
+func joinHandler(res http.ResponseWriter, req *http.Request) {
+
+	// send an error back if its not a post req
+	if req.Method == http.MethodPost {
+
+		req.ParseForm()
+
+		fmt.Println(req.Form)
+
+	} else if req.Method == http.MethodGet {
+
+		tpl.ExecuteTemplate(res, "join.html", nil)
+
+	} else {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	return
 }
 
 // Handles the Noun guessing page

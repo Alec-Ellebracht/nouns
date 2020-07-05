@@ -92,34 +92,38 @@ func CreateRoom() *Room {
 // Checks for a specifc room
 func GetRoom(id int64) (*Room, bool) {
 
-	if _, ok := hotel[id]; ok {
+	if room, ok := hotel[id]; ok {
 
-		return hotel[id], true
+		return room, true
 	}
 
 	return nil, false
 }
 
 // define a reader which will listen for
-// new messages being sent to our WebSocket
+// new messages being sent to this client
 func reader(clt *Client) {
 
 	welcome := fmt.Sprintf("Room: %v", clt.room.id)
 	clt.conn.WriteMessage(1, []byte(welcome))
 
+	// if the reader returns then we checkout
+	// the client since theyre no longer connected
+	defer func() {
+		clt.room.checkout <- clt
+		clt.conn.Close() // kill the socket
+	}()
 	for {
 
-		// read in a message
+		// read in all incoming messages
 		_, msg, err := clt.conn.ReadMessage()
 		if err != nil {
-
 			// log and unregister the client if there is some error
 			// such as close tab, nav away, etc...
 			log.Println(err)
 			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
-				clt.room.checkout <- clt
+				return
 			}
-			return
 		}
 
 		// print out that message for clarity
