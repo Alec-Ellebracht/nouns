@@ -31,11 +31,13 @@ func (n Noun) PrintType() string {
 }
 
 func (n Noun) is(s string) string {
+
 	if n.noun == s {
-		return "Correct!"
-	} else {
-		return "incorrect..."
+
+		return "correct"
 	}
+	return "incorrect"
+
 }
 
 // guess struct
