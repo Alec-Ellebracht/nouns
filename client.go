@@ -68,7 +68,7 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 			HttpOnly: true,
 			MaxAge:   maxSession,
 		}
-		// int(time.Hour * 3)
+
 	} else if err != nil {
 
 		log.Println("Error checking cookie..", err)
@@ -89,7 +89,7 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 // ActiveSession checks to see if the vistor has a session id or not
 func ActiveSession(res http.ResponseWriter, req *http.Request) bool {
 	_, err := req.Cookie("sid")
-	return err == http.ErrNoCookie
+	return err == nil
 }
 
 //***********************************************************************************************
