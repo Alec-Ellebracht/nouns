@@ -83,7 +83,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(res, req, nil)
 
 	if err != nil {
-		log.Println(err)
+		log.Println("Error upgrading conn to socket", err)
 		return
 	}
 	log.Println("Client upgraded to websocket..")
@@ -103,7 +103,7 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 
 	// TO DO : create sessions in a better spot
 	sid := CheckAndSetSession(res, req)
-	log.Printf("Created %T", sid)
+	log.Printf("Checked sid %T", sid)
 
 	// send an error back if its not a post req
 	if req.Method == http.MethodPost {

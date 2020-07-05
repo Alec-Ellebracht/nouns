@@ -29,28 +29,27 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 	var client *Client
 	if session, ok := sessions[sid]; ok {
 
-		// session.lastActivity = time.Now()
-		client = session.client
-		client.room = room
-		client.conn = conn
+		// checkout of the room
+		session.client.room.checkout <- session.client
+		session.client.conn.WriteMessage(1, []byte("Closing this connection.."))
+		session.client.conn.Close()
 
-	} else {
-
-		client = &Client{
-			room,
-			conn,
-			make(chan []byte, 256),
-		}
-
-		sessions[sid] = &Session{client, time.Now()}
-
-		// check into the room
-		client.room.checkin <- client
 	}
+
+	client = &Client{
+		room,
+		conn,
+		make(chan []byte, 256),
+	}
+
+	sessions[sid] = &Session{client, time.Now()}
 
 	// start listening for messages
 	go reader(client)
 	// TO DO : start the writer
+
+	// check into the room
+	client.room.checkin <- client
 }
 
 // CheckAndSetSession gets the uuid session id if it exists in the cookies
@@ -73,7 +72,7 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 
 	} else if err != nil {
 
-		log.Println(err)
+		log.Println("Error checking cookie..", err)
 	}
 
 	go cleanSessionStorage()
@@ -89,33 +88,28 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 
 // Reader defines a reader which will listen for
 // new messages being sent to this client
-func reader(clt *Client) {
+func reader(client *Client) {
 
 	// ack the client and send back the room number
-	roomInfo := fmt.Sprintf("Room: %v", clt.room.id)
-	clt.conn.WriteMessage(1, []byte(roomInfo))
+	roomInfo := fmt.Sprintf("Room: %v", client.room.id)
+	client.conn.WriteMessage(1, []byte(roomInfo))
 
 	// if the reader returns then we checkout
 	// the client since theyre no longer connected
 	defer func() {
-		clt.room.checkout <- clt
-		clt.conn.Close() // kill the socket
+		client.conn.Close() // kill the socket
+		client.room.checkout <- client
 	}()
 	for {
 
 		// read in all incoming messages
-		_, msg, err := clt.conn.ReadMessage()
+		_, msg, err := client.conn.ReadMessage()
 		if err != nil {
-			// log and unregister the client if there is some error
-			// such as close tab, nav away, etc...
-			log.Println(err)
-			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
-				return
-			}
+			return
 		}
 
 		// print out that message for clarity
-		log.Println(string(msg))
+		log.Println("Received message", string(msg))
 	}
 }
 
