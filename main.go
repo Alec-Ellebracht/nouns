@@ -22,6 +22,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// route handlers
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/ws", socketHandler)
 	mux.HandleFunc("/submit", submitHandler)
@@ -94,6 +95,9 @@ func guessHandler(res http.ResponseWriter, req *http.Request) {
 // Handles incoming websockets requests
 func socketHandler(res http.ResponseWriter, req *http.Request) {
 
+	// TO DO : add req parsing to get a specifc room
+	// or a request to create a new room
+
 	room, ok := GetRoom(1)
 	if !ok {
 
@@ -101,6 +105,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 		fmt.Println("Created room", room.id)
 	}
 
+	// upgrade the req to a websocket
 	conn, err := upgrader.Upgrade(res, req, nil)
 
 	if err != nil {
@@ -109,6 +114,8 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	log.Println("Client upgraded to websocket..")
 
+	// create a new client to add to the room
+	// and check them in
 	client := &Client{
 		room,
 		conn,
