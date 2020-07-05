@@ -24,6 +24,7 @@ func main() {
 
 	// route handlers
 	mux.HandleFunc("/", index)
+	mux.HandleFunc("/404", notfoundHandler)
 	mux.HandleFunc("/ws", socketHandler)
 	mux.HandleFunc("/submit", submitHandler)
 	mux.HandleFunc("/guess", guessHandler)
@@ -36,6 +37,11 @@ func main() {
 // Handles the index page
 func index(res http.ResponseWriter, req *http.Request) {
 	tpl.ExecuteTemplate(res, "index.html", false)
+}
+
+// Handles the 404 page
+func notfoundHandler(res http.ResponseWriter, req *http.Request) {
+	tpl.ExecuteTemplate(res, "notfound.html", nil)
 }
 
 // Handles the Noun submission page
