@@ -103,7 +103,7 @@ func ActiveSession(res http.ResponseWriter, req *http.Request) bool {
 func reader(client *Client) {
 
 	// ack the client and send back the room number
-	roomInfo := fmt.Sprintf("Room: %v", client.room.id)
+	roomInfo := fmt.Sprintf("Successfully joined room %v", client.room.ID)
 	client.conn.WriteMessage(1, []byte(roomInfo))
 
 	// if the reader returns then we checkout

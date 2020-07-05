@@ -25,14 +25,14 @@ func CreateRoom() *Room {
 	roomID := atomic.LoadInt64(&lastRoomID)
 
 	newRoom := &Room{
-		id:       roomID,
+		ID:       roomID,
 		checkin:  make(chan *Client),
 		checkout: make(chan *Client),
 		clients:  make(map[*Client]bool),
 	}
 
 	// add room to the list of active rooms
-	hotel[newRoom.id] = newRoom
+	hotel[newRoom.ID] = newRoom
 
 	// start the room in a routine
 	go newRoom.run()
@@ -55,6 +55,7 @@ func GetRoom(id int64) (*Room, bool) {
 
 // Run starts a room and sets up the front desk to check in and check out clients
 func (room *Room) run() {
+	defer tareDown(room)
 	for {
 
 		select {
@@ -75,8 +76,17 @@ func (room *Room) run() {
 			}
 			log.Println("Client checked out of room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
+
+			if len(room.clients) == 0 {
+				return
+			}
 		}
 	}
+}
+
+func tareDown(room *Room) {
+	log.Printf("Removing room %v all guests have left..\n", room.ID)
+	delete(hotel, room.ID)
 }
 
 //***********************************************************************************************
@@ -87,7 +97,7 @@ func (room *Room) run() {
 
 // Room is the game room for the clients to play in
 type Room struct {
-	id       int64
+	ID       int64
 	clients  map[*Client]bool
 	checkin  chan *Client
 	checkout chan *Client

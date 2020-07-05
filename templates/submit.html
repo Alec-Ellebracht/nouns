@@ -1,6 +1,6 @@
 {{define "submit"}}
     {{if not .}}
-    <form method="post" action="/submit">
+    <form method="post" action="/submit" onsubmit="event.preventDefault();">
 
         <fieldset class="uk-fieldset">
 

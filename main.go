@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"text/template"
 
@@ -36,9 +37,10 @@ func main() {
 	// route handlers
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/favicon.ico", faviconHandler)
-	mux.HandleFunc("/ws", socketHandler)
+	mux.HandleFunc("/ws/", socketHandler)
 	mux.HandleFunc("/404", notfoundHandler)
 	mux.HandleFunc("/join", joinHandler)
+	mux.HandleFunc("/room/", roomHandler)
 	mux.HandleFunc("/submit", submitHandler)
 	mux.HandleFunc("/guess", guessHandler)
 
@@ -65,6 +67,12 @@ func faviconHandler(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, "static/img/favicon.ico")
 }
 
+// Handles the 404 page
+func notfoundHandler(res http.ResponseWriter, req *http.Request) {
+
+	tpl.ExecuteTemplate(res, "notfound.html", nil)
+}
+
 // To upgrade a http connection to a websocket
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -79,11 +87,15 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	// TO DO : add req parsing to get a specifc room
 	// or a request to create a new room
 
-	room, ok := GetRoom(1)
+	roomPath := path.Base(req.URL.String())
+	roomID, _ := strconv.ParseInt(roomPath, 10, 64)
+	log.Println("Socket attempt to connect to room", roomPath)
+
+	room, ok := GetRoom(roomID)
 	if !ok {
 
-		room = CreateRoom()
-		log.Println("Created room", room.id)
+		log.Println("Socket error finding room", roomPath)
+		return
 	}
 
 	// upgrade the req to a websocket
@@ -93,16 +105,11 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 		log.Println("Error upgrading conn to socket", err)
 		return
 	}
-	log.Println("Client upgraded to websocket..")
+	log.Println("Client upgraded to websocket in room", roomID)
 
 	// create the new client
 	sid := CheckAndSetSession(res, req)
 	NewClient(room, conn, sid)
-}
-
-// Handles the 404 page
-func notfoundHandler(res http.ResponseWriter, req *http.Request) {
-	tpl.ExecuteTemplate(res, "notfound.html", nil)
 }
 
 // Handles the join page
@@ -115,11 +122,64 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 	// send an error back if its not a post req
 	if req.Method == http.MethodPost {
 
-		req.ParseForm()
+		err := req.ParseForm()
+		if err != nil {
+			log.Println("Error parsing Join form", err)
+		}
+
+		// guestName := req.Form["nickname"][0]
+		roomID := req.Form["room"][0]
+
+		if len(roomID) > 0 {
+
+			route := fmt.Sprintf("/room/%v", roomID)
+			http.Redirect(res, req, route, http.StatusSeeOther)
+
+		} else {
+
+			newRoom := CreateRoom()
+			route := fmt.Sprintf("/room/%v", newRoom.ID)
+			http.Redirect(res, req, route, http.StatusSeeOther)
+		}
 
 	} else if req.Method == http.MethodGet {
 
 		tpl.ExecuteTemplate(res, "join.html", nil)
+
+	} else {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	return
+}
+
+// Handles the room page
+func roomHandler(res http.ResponseWriter, req *http.Request) {
+
+	if !ActiveSession(res, req) {
+
+		http.Redirect(res, req, "/join", http.StatusSeeOther)
+
+	} else if req.Method == http.MethodPost {
+
+		log.Println(req.Method, "to ROOM handler")
+
+	} else if req.Method == http.MethodGet {
+
+		roomPath := path.Base(req.URL.String())
+		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
+
+		log.Println(req.Method, "to join", roomPath, roomID)
+
+		room, ok := GetRoom(roomID)
+		if !ok {
+
+			http.Redirect(res, req, "/404", http.StatusSeeOther)
+			return
+		}
+
+		tpl.ExecuteTemplate(res, "room.html", room)
 
 	} else {
 
