@@ -54,6 +54,7 @@ func main() {
 
 // Handles the index page
 func index(res http.ResponseWriter, req *http.Request) {
+
 	tpl.ExecuteTemplate(res, "index.html", false)
 }
 
@@ -75,7 +76,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	if !ok {
 
 		room = CreateRoom()
-		fmt.Println("Created room", room.id)
+		log.Println("Created room", room.id)
 	}
 
 	// upgrade the req to a websocket
@@ -87,15 +88,9 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	log.Println("Client upgraded to websocket..")
 
-	// create a new client to add to the room
-	// and check them in
-	client := &Client{
-		room,
-		conn,
-		make(chan []byte, 256),
-	}
-
-	room.checkin <- client
+	// create the new client
+	sid := CheckAndSetSession(res, req)
+	NewClient(room, conn, sid)
 }
 
 // Handles the 404 page
@@ -105,6 +100,10 @@ func notfoundHandler(res http.ResponseWriter, req *http.Request) {
 
 // Handles the join page
 func joinHandler(res http.ResponseWriter, req *http.Request) {
+
+	// TO DO : create sessions in a better spot
+	sid := CheckAndSetSession(res, req)
+	log.Printf("Created %T", sid)
 
 	// send an error back if its not a post req
 	if req.Method == http.MethodPost {

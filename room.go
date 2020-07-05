@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync/atomic"
-
-	"github.com/gorilla/websocket"
 )
 
 // Generates unique ints for room numbers
@@ -69,9 +66,6 @@ func (room *Room) run() {
 			log.Println("Client checked in to room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
-			go reader(client)
-			// TO DO : start the writer
-
 		case client := <-room.checkout:
 
 			if _, ok := room.clients[client]; ok {
@@ -85,50 +79,11 @@ func (room *Room) run() {
 	}
 }
 
-// Reader defines a reader which will listen for
-// new messages being sent to this client
-func reader(clt *Client) {
-
-	// ack the client and send back the room number
-	roomInfo := fmt.Sprintf("Room: %v", clt.room.id)
-	clt.conn.WriteMessage(1, []byte(roomInfo))
-
-	// if the reader returns then we checkout
-	// the client since theyre no longer connected
-	defer func() {
-		clt.room.checkout <- clt
-		clt.conn.Close() // kill the socket
-	}()
-	for {
-
-		// read in all incoming messages
-		_, msg, err := clt.conn.ReadMessage()
-		if err != nil {
-			// log and unregister the client if there is some error
-			// such as close tab, nav away, etc...
-			log.Println(err)
-			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
-				return
-			}
-		}
-
-		// print out that message for clarity
-		log.Println(string(msg))
-	}
-}
-
 //***********************************************************************************************
 //
 // Structs
 //
 //***********************************************************************************************
-
-// Client is a middleman connection and the room
-type Client struct {
-	room *Room
-	conn *websocket.Conn
-	send chan []byte
-}
 
 // Room is the game room for the clients to play in
 type Room struct {
