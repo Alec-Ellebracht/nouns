@@ -51,10 +51,10 @@ func submitHandler(res http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	log.Println(req.Form)
 
-	convertedNounType, _ := strconv.Atoi(req.Form.Get("nounType"))
+	intNounType, _ := strconv.Atoi(req.Form.Get("nounType"))
 
 	n := Noun{
-		nounType: convertedNounType,
+		nounType: NounType(intNounType),
 		noun:     req.Form.Get("noun"),
 		hints:    []string{req.Form.Get("hint")},
 	}
@@ -75,27 +75,26 @@ func guessHandler(res http.ResponseWriter, req *http.Request) {
 		n := submissions[0]
 		outcome := n.is(req.Form.Get("guess"))
 
-		// fmt.Fprintf(res, "Your guess was "+outcome)
-		res.Write([]byte("Your guess was " + outcome))
+		fmt.Fprintf(res, fmt.Sprintf("Your guess was %v", outcome))
 
 	} else if req.Method == http.MethodGet {
 
 		n := submissions[0]
 		tpl.ExecuteTemplate(res, "guess.html", n)
-		return
 
 	} else {
 
 		res.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(res, "invalid_http_method")
-		return
 	}
+
+	return
 }
 
 // Handles incoming websockets requests
 func socketHandler(res http.ResponseWriter, req *http.Request) {
 
-	room, ok := getRoom(0)
+	room, ok := getRoom(1)
 	if !ok {
 
 		room = createRoom()
@@ -108,7 +107,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 		log.Println(err)
 		return
 	}
-	fmt.Println("Client upgraded to websocket..")
+	log.Println("Client upgraded to websocket..")
 
 	client := &Client{
 		room,
@@ -119,12 +118,12 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	room.checkin <- client
 }
 
-// We'll need to define an Upgrader
-// this will require a Read and Write buffer size
+// To upgrade a http connection to a websocket
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
+	// TO DO : check origin
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 // func runGame() {

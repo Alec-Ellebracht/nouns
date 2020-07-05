@@ -1,17 +1,22 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // noun types
+type NounType int
+
 const (
-	Person = iota
+	Person NounType = iota
 	Place
 	Thing
 )
 
 // noun struct
 type Noun struct {
-	nounType int
+	nounType NounType
 	noun     string
 	hints    []string
 }
@@ -30,14 +35,8 @@ func (n Noun) PrintType() string {
 	return ""
 }
 
-func (n Noun) is(s string) string {
-
-	if n.noun == s {
-
-		return "correct"
-	}
-	return "incorrect"
-
+func (n Noun) is(s string) bool {
+	return strings.ToLower(n.noun) == strings.ToLower(s)
 }
 
 // guess struct

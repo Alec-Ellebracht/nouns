@@ -3,16 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 )
 
-const (
-	roomID = iota
-)
+var lastRoomID int64
 
 // Keeps track of all the rooms
-var hotel = make(map[int]*Room)
+var hotel = make(map[int64]*Room)
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -25,9 +24,10 @@ type Client struct {
 	send chan []byte
 }
 
+// This is the game room for the clients
 type Room struct {
 	// Room id
-	id int
+	id int64
 
 	// Registered clients.
 	clients map[*Client]bool
@@ -69,6 +69,10 @@ func (room *Room) run() {
 // Creates and tracks a new room
 func createRoom() *Room {
 
+	// increment the room identifier
+	atomic.AddInt64(&lastRoomID, 1)
+	roomID := atomic.LoadInt64(&lastRoomID)
+
 	newRoom := &Room{
 		id:       roomID,
 		checkin:  make(chan *Client),
@@ -86,7 +90,7 @@ func createRoom() *Room {
 }
 
 // Checks for a specifc room
-func getRoom(id int) (*Room, bool) {
+func getRoom(id int64) (*Room, bool) {
 
 	if _, ok := hotel[id]; ok {
 
@@ -98,7 +102,6 @@ func getRoom(id int) (*Room, bool) {
 
 // define a reader which will listen for
 // new messages being sent to our WebSocket
-// endpoint
 func reader(clt *Client) {
 
 	welcome := fmt.Sprintf("Room: %v", clt.room.id)
@@ -109,7 +112,13 @@ func reader(clt *Client) {
 		// read in a message
 		_, msg, err := clt.conn.ReadMessage()
 		if err != nil {
-			log.Println("return")
+
+			// log and unregister the client if there is some error
+			// such as close tab, nav away, etc...
+			log.Println(err)
+			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
+				clt.room.checkout <- clt
+			}
 			return
 		}
 
