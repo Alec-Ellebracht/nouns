@@ -56,6 +56,8 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 
 	sid, err := req.Cookie("sid")
 
+	maxSession := int(time.Duration(time.Hour)/time.Second) * 2
+
 	if err == http.ErrNoCookie {
 
 		sid = &http.Cookie{
@@ -64,19 +66,30 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 			Value: uuid.New().String(),
 			// Secure: true,
 			HttpOnly: true,
-			MaxAge:   int(time.Hour * 3),
+			MaxAge:   maxSession,
 		}
-
-		http.SetCookie(res, sid)
-
+		// int(time.Hour * 3)
 	} else if err != nil {
 
 		log.Println("Error checking cookie..", err)
+
+	} else {
+
+		// bump out the session
+		sid.MaxAge = maxSession
 	}
+
+	http.SetCookie(res, sid)
 
 	go cleanSessionStorage()
 
 	return sid.Value
+}
+
+// ActiveSession checks to see if the vistor has a session id or not
+func ActiveSession(res http.ResponseWriter, req *http.Request) bool {
+	_, err := req.Cookie("sid")
+	return err == http.ErrNoCookie
 }
 
 //***********************************************************************************************
