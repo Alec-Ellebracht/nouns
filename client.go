@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 // Keeps track of all the open sessions
-var sessions = make(map[string]*Client)
+var sessions = make(map[string]*Session)
+var lastClean = time.Now()
 
 //***********************************************************************************************
 //
@@ -25,9 +27,10 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 	// check and track the clients session
 	var client *Client
-	if existing, ok := sessions[sid]; ok {
+	if session, ok := sessions[sid]; ok {
 
-		client = existing
+		// session.lastActivity = time.Now()
+		client = session.client
 		client.room = room
 		client.conn = conn
 
@@ -39,7 +42,7 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 			make(chan []byte, 256),
 		}
 
-		sessions[sid] = client
+		sessions[sid] = &Session{client, time.Now()}
 
 		// check into the room
 		client.room.checkin <- client
@@ -72,6 +75,8 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 
 		log.Println(err)
 	}
+
+	go cleanSessionStorage()
 
 	return sid.Value
 }
@@ -114,6 +119,27 @@ func reader(clt *Client) {
 	}
 }
 
+// CleanSessionStorage periodically goes through all the stored session
+// and removes any that have not been active for 3 hours or more
+func cleanSessionStorage() {
+
+	if time.Now().Sub(lastClean) > (time.Second * 30) {
+
+		log.Println("Running session cleanup..")
+		i := 0
+
+		for key, session := range sessions {
+			if time.Now().Sub(session.lastActivity) > (time.Hour * 3) {
+				delete(sessions, key)
+				i++
+			}
+		}
+		log.Println("Removed", i, "old sessions..")
+
+		lastClean = time.Now()
+	}
+}
+
 //***********************************************************************************************
 //
 // Structs
@@ -125,4 +151,10 @@ type Client struct {
 	room *Room
 	conn *websocket.Conn
 	send chan []byte
+}
+
+// Session tracks the client and the time they were last active
+type Session struct {
+	client       *Client
+	lastActivity time.Time
 }
