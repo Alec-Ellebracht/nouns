@@ -31,9 +31,7 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 		// checkout of the room
 		session.client.room.checkout <- session.client
-		session.client.conn.WriteMessage(1, []byte("Closing this connection.."))
 		session.client.conn.Close()
-
 	}
 
 	client = &Client{
@@ -66,6 +64,7 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 			Value: uuid.New().String(),
 			// Secure: true,
 			HttpOnly: true,
+			MaxAge:   int(time.Hour * 3),
 		}
 
 		http.SetCookie(res, sid)
@@ -115,6 +114,7 @@ func reader(client *Client) {
 
 // CleanSessionStorage periodically goes through all the stored session
 // and removes any that have not been active for 3 hours or more
+// This is the best we can do for now but this could be better
 func cleanSessionStorage() {
 
 	if time.Now().Sub(lastClean) > (time.Second * 30) {
