@@ -35,6 +35,7 @@ func main() {
 
 	// route handlers
 	mux.HandleFunc("/", index)
+	mux.HandleFunc("/favicon.ico", faviconHandler)
 	mux.HandleFunc("/ws", socketHandler)
 	mux.HandleFunc("/404", notfoundHandler)
 	mux.HandleFunc("/join", joinHandler)
@@ -56,6 +57,12 @@ func main() {
 func index(res http.ResponseWriter, req *http.Request) {
 
 	tpl.ExecuteTemplate(res, "index.html", false)
+}
+
+// Handles the favicon
+func faviconHandler(res http.ResponseWriter, req *http.Request) {
+
+	http.ServeFile(res, req, "static/img/favicon.ico")
 }
 
 // To upgrade a http connection to a websocket
@@ -109,8 +116,6 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodPost {
 
 		req.ParseForm()
-
-		fmt.Println(req.Form)
 
 	} else if req.Method == http.MethodGet {
 
