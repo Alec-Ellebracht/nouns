@@ -17,12 +17,12 @@
 
             <div class="uk-margin uk-form-width-large">
                 <label for="noun">Noun:</label>
-                <input type="text" name="noun" placeholder="Person Place or Thing" required class="uk-input"><br>
+                <input type="text" id="noun" name="noun" placeholder="Person Place or Thing" required class="uk-input"><br>
             </div>
 
             <div class="uk-margin uk-form-width-large">
                 <label for="hint">Hint:</label>
-                <input type="text" name="hint" placeholder="Give us a clue" required class="uk-input"><br>
+                <input type="text" id="hint" name="hint" placeholder="Give us a clue" required class="uk-input"><br>
             </div>
 
             <div class="uk-margin uk-form-width-large">
@@ -34,20 +34,32 @@
     <script>
         $(document).ready(function () { 
 
-            $('#send-btn').click(function () {
+            $('#send-btn').click(function (event) {
+                event.preventDefault();
                 doSendNoun();
             });
     
             function doSendNoun() {
-                $.ajax({
-                    url: 'submit',
-                    type: 'post',
-                    dataType: 'html',
-                    data : { noun: 'hello' },
-                    success : function(data) {
-                        alert(data);
-                    },
-                });
+                if (this.conn) {
+                    this.conn.send(
+                        JSON.stringify(
+                            { 
+                                event: "SUBMIT",
+                                type: "Thing",
+                                noun: $("#noun").val(),
+                                hints: $("#hints").val(),
+                            }
+                        ));
+                }
+                //$.ajax({
+                //    url: 'submit',
+                //    type: 'post',
+                //    dataType: 'html',
+                //    data : { noun: 'hello' },
+                //    success : function(data) {
+                //        alert(data);
+                //    },
+                //});
             }
         });
     </script>

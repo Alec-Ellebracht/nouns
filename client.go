@@ -98,16 +98,6 @@ func reader(client *Client) {
 	roomInfo := fmt.Sprintf("Successfully joined room %v", client.room.ID)
 	client.conn.WriteMessage(1, []byte(roomInfo))
 
-	client.room.CurrGame.submit <- &Noun{
-		nounType: Thing,
-		noun:     "deez",
-		hints:    []string{},
-	}
-
-	client.room.CurrGame.guess <- &Guess{
-		guess: "deez",
-	}
-
 	// if the reader returns then we checkout
 	// the client since theyre no longer connected
 	defer func() {
@@ -116,18 +106,39 @@ func reader(client *Client) {
 	}()
 	for {
 
-		// read in all incoming messages
-		_, msg, err := client.conn.ReadMessage()
+		msg := struct {
+			Event string   `json:"event"`
+			Type  string   `json:"type"`
+			Noun  string   `json:"noun"`
+			Hints []string `json:"hints"`
+		}{}
+
+		err := client.conn.ReadJSON(&msg)
 		if err != nil {
+			log.Println("Received error reading json from client:", err)
 			return
 		}
+		log.Printf("Event: %v, Noun: %v, Type: %v", msg.Event, msg.Noun, msg.Type)
 
-		// print out that message for clarity
-		log.Println("Received message", string(msg))
+		switch msg.Event {
+
+		case "SUBMIT":
+			client.room.CurrGame.submit <- &Noun{
+				nounType: Thing,
+				noun:     msg.Noun,
+				hints:    msg.Hints,
+			}
+
+		case "GUESS":
+			client.room.CurrGame.guess <- &Guess{
+				guess: msg.Noun,
+			}
+		}
+
 	}
 }
 
-// CleanSessionStorage periodically goes through all the stored session
+// CleanSessionStorage periodically goes through all the stored sessions
 // and removes any that have not been active for 3 hours or more
 // This is the best we can do for now but this could be better
 func cleanSessionStorage() {

@@ -113,7 +113,7 @@ func (room *Room) run() {
 
 func cleanupRoom(room *Room) {
 
-	log.Printf("All guests have left room %v, deleting room..\n", room.ID)
+	log.Printf("All guests have left room %v, sending in the cleanup crew..\n", room.ID)
 
 	close(room.checkin)
 	close(room.checkout)
