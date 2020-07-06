@@ -25,16 +25,7 @@ var lastClean = time.Now()
 // their open session or creates a new one
 func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
-	// check and track the clients session
-	var client *Client
-	if session, ok := sessions[sid]; ok {
-
-		// checkout of the room
-		session.client.room.checkout <- session.client
-		session.client.conn.Close()
-	}
-
-	client = &Client{
+	client := &Client{
 		room,
 		conn,
 		make(chan []byte, 256),
@@ -42,12 +33,13 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 	sessions[sid] = &Session{client, time.Now()}
 
+	// check into the room
+	room.checkin <- client
+
 	// start listening for messages
 	go reader(client)
 	// TO DO : start the writer
 
-	// check into the room
-	client.room.checkin <- client
 }
 
 // CheckAndSetSession gets the uuid session id if it exists in the cookies
@@ -105,6 +97,16 @@ func reader(client *Client) {
 	// ack the client and send back the room number
 	roomInfo := fmt.Sprintf("Successfully joined room %v", client.room.ID)
 	client.conn.WriteMessage(1, []byte(roomInfo))
+
+	client.room.CurrGame.submit <- &Noun{
+		nounType: Thing,
+		noun:     "deez",
+		hints:    []string{},
+	}
+
+	client.room.CurrGame.guess <- &Guess{
+		guess: "deez",
+	}
 
 	// if the reader returns then we checkout
 	// the client since theyre no longer connected

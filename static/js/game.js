@@ -4,6 +4,8 @@ $(document).ready(function () {
     // Makes a websocket connection
     let conn;
     function connect () {
+
+        if (conn) { return; }
         
         if (window['WebSocket']) {
     

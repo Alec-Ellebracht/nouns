@@ -102,6 +102,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(res, req, nil)
 
 	if err != nil {
+
 		log.Println("Error upgrading conn to socket", err)
 		return
 	}
@@ -170,7 +171,7 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 		roomPath := path.Base(req.URL.String())
 		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
 
-		log.Println(req.Method, "to join", roomPath, roomID)
+		log.Println(req.Method, "to join", roomPath)
 
 		room, ok := GetRoom(roomID)
 		if !ok {
@@ -192,53 +193,54 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 // Handles the Noun submission page
 func submitHandler(res http.ResponseWriter, req *http.Request) {
 
-	// send an error back if its not a post req
-	if req.Method != http.MethodPost {
-		res.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(res, "invalid_http_method")
-		return
-	}
+	// // send an error back if its not a post req
+	// if req.Method != http.MethodPost {
 
-	// Must call ParseForm() before working with data
-	req.ParseForm()
-	log.Println(req.Form)
+	// 	res.WriteHeader(http.StatusMethodNotAllowed)
+	// 	fmt.Fprintf(res, "invalid_http_method")
+	// 	return
+	// }
 
-	intNounType, _ := strconv.Atoi(req.Form.Get("nounType"))
+	// // Must call ParseForm() before working with data
+	// req.ParseForm()
+	// log.Println(req.Form)
 
-	n := Noun{
-		nounType: NounType(intNounType),
-		noun:     req.Form.Get("noun"),
-		hints:    []string{req.Form.Get("hint")},
-	}
+	// intNounType, _ := strconv.Atoi(req.Form.Get("nounType"))
 
-	SubmitNoun(n)
+	// n := Noun{
+	// 	nounType: NounType(intNounType),
+	// 	noun:     req.Form.Get("noun"),
+	// 	hints:    []string{req.Form.Get("hint")},
+	// }
 
-	http.Redirect(res, req, "/guess", http.StatusFound)
+	// SubmitNoun(n)
+
+	// http.Redirect(res, req, "/guess", http.StatusFound)
 }
 
 // Handles the Noun guessing page
 func guessHandler(res http.ResponseWriter, req *http.Request) {
 
-	// send an error back if its not a post req
-	if req.Method == http.MethodPost {
+	// // send an error back if its not a post req
+	// if req.Method == http.MethodPost {
 
-		req.ParseForm()
+	// 	req.ParseForm()
 
-		n := submissions[0]
-		outcome := n.is(req.Form.Get("guess"))
+	// 	n := submissions[0]
+	// 	outcome := n.is(req.Form.Get("guess"))
 
-		fmt.Fprintf(res, fmt.Sprintf("Your guess was %v", outcome))
+	// 	fmt.Fprintf(res, fmt.Sprintf("Your guess was %v", outcome))
 
-	} else if req.Method == http.MethodGet {
+	// } else if req.Method == http.MethodGet {
 
-		n := submissions[0]
-		tpl.ExecuteTemplate(res, "guess.html", n)
+	// 	n := submissions[0]
+	// 	tpl.ExecuteTemplate(res, "guess.html", n)
 
-	} else {
+	// } else {
 
-		res.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(res, "invalid_http_method")
-	}
+	// 	res.WriteHeader(http.StatusMethodNotAllowed)
+	// 	fmt.Fprintf(res, "invalid_http_method")
+	// }
 
-	return
+	// return
 }

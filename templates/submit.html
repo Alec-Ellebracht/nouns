@@ -26,10 +26,30 @@
             </div>
 
             <div class="uk-margin uk-form-width-large">
-                <input type="submit" class="uk-button uk-button-primary">
+                <input id="send-btn" type="submit" class="uk-button uk-button-primary">
             </div>
 
         </fieldset>
     </form>
+    <script>
+        $(document).ready(function () { 
+
+            $('#send-btn').click(function () {
+                doSendNoun();
+            });
+    
+            function doSendNoun() {
+                $.ajax({
+                    url: 'submit',
+                    type: 'post',
+                    dataType: 'html',
+                    data : { noun: 'hello' },
+                    success : function(data) {
+                        alert(data);
+                    },
+                });
+            }
+        });
+    </script>
     {{end}}
 {{end}}
