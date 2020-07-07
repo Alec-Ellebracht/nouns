@@ -1,85 +1,100 @@
 {{define "submit"}}
-    {{if not .}}
-    <form id="noun-form"
-        method="post" 
-        action="/submit" 
-        onsubmit="event.preventDefault();"
-        class="">
 
-        <fieldset class="uk-fieldset">
+<!-- submit modal -->
+<div id="noun-submit-modal" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body">
 
-            <legend class="uk-legend">Submit a Person/Place/Thing</legend>
+        <form id="noun-form"
+            method="post" 
+            action="/submit" 
+            class="">
 
-            <div class="uk-margin uk-form-width-large">
-                <label for="person">Person:</label>
-                <input type="text" 
-                    id="person" 
-                    name="person" 
-                    placeholder="Name a person or character" 
-                    class="uk-input"
-                    required ><br>
-            </div>
+            <fieldset class="uk-fieldset">
 
-            <div class="uk-margin uk-form-width-large">
-                <label for="place">Place:</label>
-                <input type="text" 
-                    id="place" 
-                    name="place" 
-                    placeholder="Name a place or location" 
-                    class="uk-input"
-                    required ><br>
-            </div>
+                <legend class="uk-legend">Submit a Person/Place/Thing</legend>
 
-            <div class="uk-margin uk-form-width-large">
-                <label for="thing">Thing:</label>
-                <input type="text" 
-                    id="thing" 
-                    name="thing" 
-                    placeholder="Name any item, animal, etc.." 
-                    class="uk-input"
-                    required ><br>
-            </div>
+                <div class="uk-margin">
+                    <label for="person">Person:</label>
+                    <input type="text" 
+                        id="person" 
+                        name="person" 
+                        placeholder="Name a person or character" 
+                        class="uk-input"
+                        required ><br>
+                </div>
 
-            <div class="uk-margin uk-form-width-large">
-                <input type="submit" 
-                    id="send-btn"
-                    name="Submit"
-                    class="uk-button uk-button-primary">
-            </div>
+                <div class="uk-margin">
+                    <label for="place">Place:</label>
+                    <input type="text" 
+                        id="place" 
+                        name="place" 
+                        placeholder="Name a place or location" 
+                        class="uk-input"
+                        required ><br>
+                </div>
 
-        </fieldset>
-    </form>
+                <div class="uk-margin">
+                    <label for="thing">Thing:</label>
+                    <input type="text" 
+                        id="thing" 
+                        name="thing" 
+                        placeholder="Name any item, animal, etc.." 
+                        class="uk-input"
+                        required ><br>
+                </div>
+
+                <div class="uk-margin">
+                    <input type="submit" 
+                        id="send-btn"
+                        name="Submit"
+                        class="uk-button uk-button-primary uk-modal-close">
+                </div>
+
+            </fieldset>
+        </form>
+
+    </div>
+</div>
+
     <script>
         $(document).ready(function () { 
 
-            $('#send-btn').click(function (event) {
-                event.preventDefault();
-                doSendNoun();
-                $('#noun-form').hide();
-            });
+            // button handler
+//            $('#send-btn').click(function (event) {
+//
+//                event.preventDefault();
+//                doSendNoun();
+//
+//                UIkit.modal($('#noun-submit-modal')).hide();
+//            });
     
+            // button handler
+            UIkit.util.on('#send-btn', 'click', function (event) {
+                event.preventDefault();
+                event.target.blur();
+                doSendNoun();
+                UIkit.modal($('#noun-submit-modal')).hide();
+            });
+
+            // pops the modal for the user to submit their nouns
+            UIkit.modal($('#noun-submit-modal')).show();
+
+
+            // submit the noun to the game room
             function doSendNoun() {
-                if (this.conn) {
-                    this.conn.send(JSON.stringify(
-                        { 
-                            event: "SUBMIT",
-                            person: $("#person").val(),
-                            place: $("#place").val(),
-                            thing: $("#thing").val(),
-                        }
-                    ));
-                }
-                //$.ajax({
-                //    url: 'submit',
-                //    type: 'post',
-                //    dataType: 'html',
-                //    data : { noun: 'hello' },
-                //    success : function(data) {
-                //        alert(data);
-                //    },
-                //});
+
+                if (!this.conn) { return; }
+
+                this.conn.send(JSON.stringify(
+                    { 
+                        event: "SUBMIT",
+                        person: $("#person").val(),
+                        place: $("#place").val(),
+                        thing: $("#thing").val(),
+                    }
+                ));
             }
         });
     </script>
-    {{end}}
+
 {{end}}
