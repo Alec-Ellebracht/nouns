@@ -1,32 +1,50 @@
 {{define "submit"}}
     {{if not .}}
-    <form method="post" action="/submit" onsubmit="event.preventDefault();">
+    <form id="noun-form"
+        method="post" 
+        action="/submit" 
+        onsubmit="event.preventDefault();"
+        class="">
 
         <fieldset class="uk-fieldset">
 
             <legend class="uk-legend">Submit a Person/Place/Thing</legend>
 
             <div class="uk-margin uk-form-width-large">
-                <input type="radio" id="person" name="nounType" value="0" class="uk-radio">
-                <label for="person">Person</label><br>
-                <input type="radio" id="place" name="nounType" value="1" class="uk-radio">
-                <label for="place">Place</label><br>
-                <input type="radio" id="thing" name="nounType" value="2" class="uk-radio">
-                <label for="thing">Thing</label><br>
+                <label for="person">Person:</label>
+                <input type="text" 
+                    id="person" 
+                    name="person" 
+                    placeholder="Name a person or character" 
+                    class="uk-input"
+                    required ><br>
             </div>
 
             <div class="uk-margin uk-form-width-large">
-                <label for="noun">Noun:</label>
-                <input type="text" id="noun" name="noun" placeholder="Person Place or Thing" required class="uk-input"><br>
+                <label for="place">Place:</label>
+                <input type="text" 
+                    id="place" 
+                    name="place" 
+                    placeholder="Name a place or location" 
+                    class="uk-input"
+                    required ><br>
             </div>
 
             <div class="uk-margin uk-form-width-large">
-                <label for="hint">Hint:</label>
-                <input type="text" id="hint" name="hint" placeholder="Give us a clue" required class="uk-input"><br>
+                <label for="thing">Thing:</label>
+                <input type="text" 
+                    id="thing" 
+                    name="thing" 
+                    placeholder="Name any item, animal, etc.." 
+                    class="uk-input"
+                    required ><br>
             </div>
 
             <div class="uk-margin uk-form-width-large">
-                <input id="send-btn" type="submit" class="uk-button uk-button-primary">
+                <input type="submit" 
+                    id="send-btn"
+                    name="Submit"
+                    class="uk-button uk-button-primary">
             </div>
 
         </fieldset>
@@ -37,19 +55,19 @@
             $('#send-btn').click(function (event) {
                 event.preventDefault();
                 doSendNoun();
+                $('#noun-form').hide();
             });
     
             function doSendNoun() {
                 if (this.conn) {
-                    this.conn.send(
-                        JSON.stringify(
-                            { 
-                                event: "SUBMIT",
-                                type: "Thing",
-                                noun: $("#noun").val(),
-                                hints: $("#hints").val(),
-                            }
-                        ));
+                    this.conn.send(JSON.stringify(
+                        { 
+                            event: "SUBMIT",
+                            person: $("#person").val(),
+                            place: $("#place").val(),
+                            thing: $("#thing").val(),
+                        }
+                    ));
                 }
                 //$.ajax({
                 //    url: 'submit',

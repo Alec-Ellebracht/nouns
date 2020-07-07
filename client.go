@@ -28,7 +28,7 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 	client := &Client{
 		room,
 		conn,
-		make(chan []byte, 256),
+		make(chan interface{}),
 	}
 
 	sessions[sid] = &Session{client, time.Now()}
@@ -38,7 +38,7 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 	// start listening for messages
 	go reader(client)
-	// TO DO : start the writer
+	go writer(client)
 
 }
 
@@ -107,10 +107,10 @@ func reader(client *Client) {
 	for {
 
 		msg := struct {
-			Event string   `json:"event"`
-			Type  string   `json:"type"`
-			Noun  string   `json:"noun"`
-			Hints []string `json:"hints"`
+			Event  string `json:"event"`
+			Person string `json:"person"`
+			Place  string `json:"place"`
+			Thing  string `json:"thing"`
 		}{}
 
 		err := client.conn.ReadJSON(&msg)
@@ -118,23 +118,73 @@ func reader(client *Client) {
 			log.Println("Received error reading json from client:", err)
 			return
 		}
-		log.Printf("Event: %v, Noun: %v, Type: %v", msg.Event, msg.Noun, msg.Type)
+		log.Printf("Event: %v, person: %v, place: %v, thing: %v", msg.Event, msg.Person, msg.Place, msg.Thing)
 
 		switch msg.Event {
 
 		case "SUBMIT":
-			client.room.CurrGame.submit <- &Noun{
-				nounType: Thing,
-				noun:     msg.Noun,
-				hints:    msg.Hints,
+			person := Noun{
+				Type: Person,
+				Noun: msg.Person,
 			}
+			place := Noun{
+				Type: Place,
+				Noun: msg.Place,
+			}
+			thing := Noun{
+				Type: Thing,
+				Noun: msg.Thing,
+			}
+			client.room.CurrGame.submit <- person
+			client.room.CurrGame.submit <- place
+			client.room.CurrGame.submit <- thing
+			client.room.publish <- thing
 
 		case "GUESS":
-			client.room.CurrGame.guess <- &Guess{
-				guess: msg.Noun,
+			client.room.CurrGame.guess <- Guess{
+				Guess:  msg.Thing,
+				client: client,
+			}
+
+		case "HINT":
+			client.room.CurrGame.guess <- Guess{
+				Guess:  msg.Thing,
+				client: client,
 			}
 		}
 
+	}
+}
+
+// Writer will listen for messages from other clients
+// and relay them to this client
+func writer(client *Client) {
+
+	// if the reader returns then we checkout
+	// the client since theyre no longer connected
+	defer func() {
+		client.conn.Close() // kill the socket
+		client.room.checkout <- client
+	}()
+	for {
+
+		select {
+
+		case message, ok := <-client.send:
+
+			log.Printf("Message type %T:", message)
+
+			if !ok {
+				log.Println("Client channel closed:", ok)
+				return
+			}
+
+			err := client.conn.WriteJSON(message)
+			if err != nil {
+				log.Println("Received error writing json to client:", err)
+				return
+			}
+		}
 	}
 }
 
@@ -170,7 +220,7 @@ func cleanSessionStorage() {
 type Client struct {
 	room *Room
 	conn *websocket.Conn
-	send chan []byte
+	send chan interface{}
 }
 
 // Session tracks the client and the time they were last active

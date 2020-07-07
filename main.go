@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 //
 //***********************************************************************************************
 
+var addr = flag.String("addr", ":666", "http service address")
+
 var tpl *template.Template
 
 // Parse all the html files in the templates folder
@@ -32,6 +35,8 @@ func init() {
 
 func main() {
 
+	flag.Parse()
+
 	mux := http.NewServeMux()
 
 	// route handlers
@@ -46,7 +51,7 @@ func main() {
 
 	// serves all the static resources for js and css
 	mux.Handle("/resource/", http.StripPrefix("/resource/", http.FileServer(http.Dir("static"))))
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(*addr, mux))
 }
 
 //***********************************************************************************************
@@ -95,6 +100,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	if !ok {
 
 		log.Println("Socket error finding room", roomPath)
+		http.Error(res, "We couldn't find the room you were looking for.", 404)
 		return
 	}
 
@@ -104,6 +110,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 
 		log.Println("Error upgrading conn to socket", err)
+		http.Error(res, "Uh oh, there was an issue connecting to the host.", 500)
 		return
 	}
 	log.Println("Client upgraded to websocket in room", roomID)

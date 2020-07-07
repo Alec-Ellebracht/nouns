@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"sync/atomic"
-	"time"
 )
 
 // Generates unique ints for room numbers
@@ -26,10 +25,10 @@ func CreateRoom() *Room {
 	roomID := atomic.LoadInt64(&lastRoomID)
 
 	game := &Game{
-		submissions: []*Noun{},
+		submissions: []Noun{},
 		currentNoun: nil,
-		submit:      make(chan *Noun),
-		guess:       make(chan *Guess),
+		submit:      make(chan Noun),
+		guess:       make(chan Guess),
 	}
 
 	go game.Run()
@@ -39,7 +38,7 @@ func CreateRoom() *Room {
 		CurrGame: game,
 		checkin:  make(chan *Client),
 		checkout: make(chan *Client),
-		close:    make(chan bool),
+		publish:  make(chan interface{}),
 		clients:  make(map[*Client]bool),
 	}
 
@@ -68,7 +67,14 @@ func GetRoom(id int64) (*Room, bool) {
 // Run starts a room and sets up the front desk to check in and check out clients
 func (room *Room) run() {
 
-	defer cleanupRoom(room)
+	defer func() {
+
+		log.Printf("All guests have left room %v, sending in the cleanup crew..\n", room.ID)
+
+		close(room.checkin)
+		close(room.checkout)
+		delete(hotel, room.ID)
+	}()
 	for {
 
 		select {
@@ -80,6 +86,8 @@ func (room *Room) run() {
 			log.Println("Client checked in to room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
+			// room.publish <- "Someone else joined the room!"
+
 		case client := <-room.checkout:
 
 			if _, ok := room.clients[client]; ok {
@@ -90,35 +98,21 @@ func (room *Room) run() {
 			log.Println("Client checked out of room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
-			// if there are no more guests we might remove the room
-			// we wait and see if someone else joins
-			if room.empty() {
+		case message := <-room.publish:
 
-				go func() {
-					time.Sleep(time.Second * 10)
-					room.close <- room.empty()
-				}()
-			}
+			for client := range room.clients {
 
-		case isEmpty := <-room.close:
+				select {
 
-			log.Printf("Checking if room %v is ready to be cleaned up..\n", room.ID)
+				case client.send <- message:
 
-			if isEmpty {
-				return
+				default:
+					close(client.send)
+					delete(room.clients, client)
+				}
 			}
 		}
 	}
-}
-
-func cleanupRoom(room *Room) {
-
-	log.Printf("All guests have left room %v, sending in the cleanup crew..\n", room.ID)
-
-	close(room.checkin)
-	close(room.checkout)
-	close(room.close)
-	delete(hotel, room.ID)
 }
 
 //***********************************************************************************************
@@ -134,7 +128,7 @@ type Room struct {
 	clients  map[*Client]bool
 	checkin  chan *Client
 	checkout chan *Client
-	close    chan bool
+	publish  chan interface{}
 }
 
 func (room *Room) empty() bool {

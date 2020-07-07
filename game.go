@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 )
@@ -23,15 +24,18 @@ func (game *Game) Run() {
 
 			game.submissions = append(game.submissions, noun)
 			if game.currentNoun == nil {
-				game.currentNoun = noun
+				game.currentNoun = &noun
 			}
 
-			log.Printf("Noun %v submitted to game..", noun.noun)
+			log.Printf("Noun %v submitted to game..", noun.Noun)
 
 		case guess := <-game.guess:
 
-			outcome := game.currentNoun.is(guess.guess)
-			log.Printf("Is guess %v equal to %v? %v", guess.guess, game.currentNoun.noun, outcome)
+			outcome := game.currentNoun.is(guess.Guess)
+			log.Printf("Is guess %v equal to %v? %v", guess.Guess, game.currentNoun.Noun, outcome)
+
+		case hint := <-game.hint:
+			fmt.Println(hint)
 		}
 	}
 }
@@ -45,6 +49,7 @@ func (game *Game) Run() {
 func cleanupGame(game *Game) {
 	close(game.submit)
 	close(game.guess)
+	close(game.hint)
 }
 
 //***********************************************************************************************
@@ -55,12 +60,12 @@ func cleanupGame(game *Game) {
 
 // NounType is the type of noun
 // this is a Person, Place or Thing
-type NounType int
+type NounType string
 
 const (
-	Person NounType = iota
-	Place
-	Thing
+	Person NounType = "person"
+	Place  NounType = "place"
+	Thing  NounType = "thing"
 )
 
 //***********************************************************************************************
@@ -71,40 +76,37 @@ const (
 
 // Game struct
 type Game struct {
-	submissions []*Noun
+	submissions []Noun
 	currentNoun *Noun
-	submit      chan *Noun
-	guess       chan *Guess
+	submit      chan Noun
+	guess       chan Guess
+	hint        chan Guess
 }
 
 // Noun struct
 type Noun struct {
-	nounType NounType
-	noun     string
-	hints    []string
+	Type NounType
+	Noun string
 }
 
 // PrintType prints out the type of Noun
 // this is a Person, Place or Thing
 func (n Noun) PrintType() string {
-
-	switch n.nounType {
-
-	case Person:
-		return "Person"
-	case Place:
-		return "Place"
-	case Thing:
-		return "Thing"
-	}
-	return ""
+	return string(n.Type)
 }
 
 func (n Noun) is(s string) bool {
-	return strings.ToLower(n.noun) == strings.ToLower(s)
+	return strings.ToLower(n.Noun) == strings.ToLower(s)
 }
 
 // Guess struct
 type Guess struct {
-	guess string
+	Guess  string
+	client *Client
+}
+
+// Hint struct
+type Hint struct {
+	Hint   string
+	client *Client
 }
