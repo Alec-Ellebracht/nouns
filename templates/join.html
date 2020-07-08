@@ -2,16 +2,16 @@
 
 <body>
     {{template "nav"}}
-    
-    <h1>Let's Play Nouns</h1>
+
+    <h2>Let's Play Nouns</h2>
     <hr>
 
-        <form action="/join" method="post">
+        <form action="/join" method="post" class="uk-grid-small">
             <fieldset class="uk-fieldset">
         
-                <legend class="uk-legend">Leave room number blank to create a room.</legend>
-    
-                <div class="uk-margin uk-form-width-large">
+                <legend class="uk-legend">Create or join a room to start playing!</legend>
+
+                <div class="uk-margin">
                     <label for="nickname">Name:</label>
                     <input type="text" 
                         name="nickname" 
@@ -20,15 +20,15 @@
                         required><br>
                 </div>
         
-                <div class="uk-margin uk-form-width-large">
+                <div class="uk-margin">
                     <label for="room">Room:</label>
                     <input type="text" 
                         name="room" 
-                        placeholder="Room Number" 
+                        placeholder="Leave blank to create a room" 
                         class="uk-input"><br>
                 </div>
     
-                <div class="uk-margin uk-form-width-large">
+                <div class="uk-margin">
                     <button id="create-btn" 
                         type="submit" 
                         value="create" 

@@ -1,0 +1,21 @@
+{{define "game"}}
+<!-- start button -->
+<p class="start-btn" uk-margin>
+    <button id="start-btn" class="start-btn uk-button uk-button-primary uk-button-large" disabled>Start Game</button>
+</p>
+
+<!-- presents hint -->
+<div class="uk-section uk-section-primary uk-light">
+    <div class="uk-container">
+
+        <h3 id="noun-desc">Guess the <strong id="noun-type">Lorem</strong></h3>
+
+        <div class="uk-grid-match uk-child-width-1-1@m" uk-grid>
+            <p id="noun-hint">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+        </div>
+
+    </div>
+</div>
+
+<script src="/resource/js/game.js"></script>
+{{end}}

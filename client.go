@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -94,10 +94,6 @@ func ActiveSession(res http.ResponseWriter, req *http.Request) bool {
 // new messages being sent to this client
 func reader(client *Client) {
 
-	// ack the client and send back the room number
-	roomInfo := fmt.Sprintf("Successfully joined room %v", client.room.ID)
-	client.conn.WriteMessage(1, []byte(roomInfo))
-
 	// if the reader returns then we checkout
 	// the client since theyre no longer connected
 	defer func() {
@@ -106,49 +102,79 @@ func reader(client *Client) {
 	}()
 	for {
 
-		msg := struct {
-			Event  string `json:"event"`
-			Person string `json:"person"`
-			Place  string `json:"place"`
-			Thing  string `json:"thing"`
-		}{}
+		// unmarshal to the envelope first
+		// then based on the type we further back
+		// into the specific type of message
+		var msg json.RawMessage
+		env := Envelope{Msg: &msg}
 
-		err := client.conn.ReadJSON(&msg)
+		err := client.conn.ReadJSON(&env)
 		if err != nil {
-			log.Println("Received error reading json from client:", err)
+			log.Panicln("Received error reading json from client:", err)
 			return
 		}
-		log.Printf("Event: %v, person: %v, place: %v, thing: %v", msg.Event, msg.Person, msg.Place, msg.Thing)
+		log.Printf("Received %v type payload..", env.Type)
 
-		switch msg.Event {
+		switch env.Type {
 
-		case "SUBMIT":
-			person := Noun{
+		case "submit":
+
+			nouns := struct {
+				Person string `json:"person"`
+				Place  string `json:"place"`
+				Thing  string `json:"thing"`
+			}{}
+
+			err := json.Unmarshal(msg, &nouns)
+			if err != nil {
+				log.Panicln("Error unmarshalling json for submission:", err)
+				return
+			}
+
+			client.room.CurrGame.submit <- Noun{
 				Type: Person,
-				Noun: msg.Person,
+				Noun: nouns.Person,
 			}
-			place := Noun{
+			client.room.CurrGame.submit <- Noun{
 				Type: Place,
-				Noun: msg.Place,
+				Noun: nouns.Place,
 			}
-			thing := Noun{
+			client.room.CurrGame.submit <- Noun{
 				Type: Thing,
-				Noun: msg.Thing,
+				Noun: nouns.Thing,
 			}
-			client.room.CurrGame.submit <- person
-			client.room.CurrGame.submit <- place
-			client.room.CurrGame.submit <- thing
-			client.room.publish <- thing
 
-		case "GUESS":
+		case "guess":
+
+			guess := struct {
+				Guess string `json:"guess"`
+			}{}
+
+			err := json.Unmarshal(msg, &guess)
+			if err != nil {
+				log.Panicln("Error unmarshalling json for guess:", err)
+				return
+			}
+
 			client.room.CurrGame.guess <- Guess{
-				Guess:  msg.Thing,
+				Guess:  guess.Guess,
 				client: client,
 			}
 
-		case "HINT":
+		case "hint":
+
+			hint := struct {
+				Hint string `json:"guess"`
+			}{}
+
+			err := json.Unmarshal(msg, &hint)
+			if err != nil {
+				log.Panicln("Error unmarshalling json for hint:", err)
+				return
+			}
+
 			client.room.CurrGame.guess <- Guess{
-				Guess:  msg.Thing,
+				Guess:  hint.Hint,
 				client: client,
 			}
 		}
@@ -227,4 +253,10 @@ type Client struct {
 type Session struct {
 	client       *Client
 	lastActivity time.Time
+}
+
+// Envelope allows for better json comms on the websocket
+type Envelope struct {
+	Type string
+	Msg  interface{}
 }

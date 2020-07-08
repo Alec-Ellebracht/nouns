@@ -34,8 +34,10 @@ $(document).ready(function () {
     
             this.conn.onmessage = evt => {
 
-                console.log('Message from host..', evt.data);
-                $('#conn-result').html('<i>'+evt.data+'</i>');
+                UIkit.modal.alert(evt.data).then(function () {
+
+                    console.log('Message from host..', evt.data);
+                });
             };
     
         } else {
@@ -46,13 +48,22 @@ $(document).ready(function () {
 
     connect();
 
-    // // Creates a new room
-    // $('#create-btn').click(function () {
-    //     connect();
-    // });
+    // button handler
+    UIkit.util.on('#start-btn', 'click', function (event) {
 
-    // // Joins an existing room
-    // $('#join-btn').click(function () {
-    //     connect();
-    // });
+        event.preventDefault();
+        event.target.blur();
+
+        $('.start-btn').hide();
+        start()
+    });
+
+    function start() {
+        this.conn.send(JSON.stringify(
+            { 
+                event: "START"
+            }
+        ));
+    }
+
 });

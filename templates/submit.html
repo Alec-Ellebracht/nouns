@@ -56,45 +56,42 @@
     </div>
 </div>
 
-    <script>
-        $(document).ready(function () { 
+<script>
+    $(document).ready(function () { 
 
-            // button handler
-//            $('#send-btn').click(function (event) {
-//
-//                event.preventDefault();
-//                doSendNoun();
-//
-//                UIkit.modal($('#noun-submit-modal')).hide();
-//            });
-    
-            // button handler
-            UIkit.util.on('#send-btn', 'click', function (event) {
-                event.preventDefault();
-                event.target.blur();
-                doSendNoun();
-                UIkit.modal($('#noun-submit-modal')).hide();
+        // button handler
+        UIkit.util.on('#send-btn', 'click', function (event) {
+
+            event.preventDefault();
+            event.target.blur();
+
+            // TO DO : add form validation
+
+            doSendNoun({ 
+                type: "submit",
+                msg: {
+                    person: $("#person").val(),
+                    place: $("#place").val(),
+                    thing: $("#thing").val(),
+                }
             });
 
-            // pops the modal for the user to submit their nouns
-            UIkit.modal($('#noun-submit-modal')).show();
-
-
-            // submit the noun to the game room
-            function doSendNoun() {
-
-                if (!this.conn) { return; }
-
-                this.conn.send(JSON.stringify(
-                    { 
-                        event: "SUBMIT",
-                        person: $("#person").val(),
-                        place: $("#place").val(),
-                        thing: $("#thing").val(),
-                    }
-                ));
-            }
+            UIkit.modal($('#noun-submit-modal')).hide();
+            $('#start-btn').prop('disabled', false);
         });
-    </script>
+
+        // pops the modal for the user to submit their nouns
+        UIkit.modal($('#noun-submit-modal')).show();
+
+        // submit the nouns to the game room
+        function doSendNoun(envelope) {
+
+            if (!this.conn) { return; }
+
+            this.conn.send(JSON.stringify(envelope));
+        }
+
+    });
+</script>
 
 {{end}}

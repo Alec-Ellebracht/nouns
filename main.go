@@ -18,7 +18,7 @@ import (
 //
 //***********************************************************************************************
 
-var addr = flag.String("addr", ":666", "http service address")
+var addr = flag.String("addr", ":80", "http service address")
 
 var tpl *template.Template
 
@@ -100,7 +100,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	if !ok {
 
 		log.Println("Socket error finding room", roomPath)
-		http.Error(res, "We couldn't find the room you were looking for.", 404)
+		http.Error(res, "We couldn't find the room you were looking for.", http.StatusNotFound)
 		return
 	}
 
@@ -110,7 +110,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 
 		log.Println("Error upgrading conn to socket", err)
-		http.Error(res, "Uh oh, there was an issue connecting to the host.", 500)
+		http.Error(res, "Uh oh, there was an issue connecting to the host.", http.StatusBadRequest)
 		return
 	}
 	log.Println("Client upgraded to websocket in room", roomID)

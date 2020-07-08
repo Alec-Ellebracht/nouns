@@ -1,12 +1,17 @@
 {{define "nav"}}
 <nav class="uk-navbar uk-navbar-container">
-    <div class="uk-navbar-left">
-        <a class="uk-navbar-toggle" href="#">
-            <span uk-navbar-toggle-icon></span> <span class="uk-margin-small-left">Menu</span>
+
+    <div class="uk-navbar-left uk-margin-small-left">
+        <a class="uk-logo" href="/">
+            <img src="/resource/img/noun.png" alt="Nouns logo" width="35" /><strong>OUNS</strong>
         </a>
     </div>
+
     <div class="uk-navbar-right uk-margin-small-right">
-        <img src="/resource/img/noun.png" width="35" />
+        <a class="uk-navbar-toggle" href="#">
+            <span class="uk-margin-small-right">Menu</span> <span uk-navbar-toggle-icon></span>
+        </a>
     </div>
+
 </nav>
 {{end}}
