@@ -8,9 +8,25 @@
     </div>
 
     <div class="uk-navbar-right uk-margin-small-right">
-        <a class="uk-navbar-toggle" href="#">
+        <a class="uk-navbar-toggle" href="#side-menu" uk-toggle>
             <span class="uk-margin-small-right">Menu</span> <span uk-navbar-toggle-icon></span>
         </a>
+        <div id="side-menu" uk-offcanvas="overlay: true; flip: true;">
+            <div class="uk-offcanvas-bar uk-flex uk-flex-column">
+        
+                <ul class="uk-nav uk-nav-primary uk-margin-small-top">
+                    <li class="uk-active"><a href="#">Active</a></li>
+                    <li class="uk-parent">
+                        <a href="#">Parent</a>
+                        <ul class="uk-nav-sub">
+                            <li><a href="#">Sub item</a></li>
+                            <li><a href="#">Sub item</a></li>
+                        </ul>
+                    </li>
+                </ul>
+        
+            </div>
+        </div>
     </div>
 
 </nav>

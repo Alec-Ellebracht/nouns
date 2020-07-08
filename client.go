@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -110,7 +111,7 @@ func reader(client *Client) {
 
 		err := client.conn.ReadJSON(&env)
 		if err != nil {
-			log.Panicln("Received error reading json from client:", err)
+			log.Println("Received error reading json from client:", err)
 			return
 		}
 		log.Printf("Received %v type payload..", env.Type)
@@ -127,7 +128,7 @@ func reader(client *Client) {
 
 			err := json.Unmarshal(msg, &nouns)
 			if err != nil {
-				log.Panicln("Error unmarshalling json for submission:", err)
+				log.Println("Error unmarshalling json for submission:", err)
 				return
 			}
 
@@ -177,6 +178,26 @@ func reader(client *Client) {
 				Guess:  hint.Hint,
 				client: client,
 			}
+
+		case "start":
+
+			time.Sleep(time.Second * 3)
+
+			nouns := client.room.CurrGame.submissions
+
+			rand.Seed(time.Now().UnixNano())
+			rand.Shuffle(len(nouns), func(i, j int) { nouns[i], nouns[j] = nouns[j], nouns[i] })
+
+			client.room.publish <- Hint{
+				Hint:   nouns[0].Noun,
+				Noun:   nouns[0],
+				client: client,
+			}
+			time.Sleep(time.Second * 3)
+			client.room.publish <- Guess{
+				Guess:  "Is it hogwarts?",
+				client: client,
+			}
 		}
 
 	}
@@ -205,7 +226,30 @@ func writer(client *Client) {
 				return
 			}
 
-			err := client.conn.WriteJSON(message)
+			env := Envelope{}
+
+			switch message.(type) {
+			case Noun:
+				log.Println("Sending a Noun")
+				env = Envelope{
+					Type: "noun",
+					Msg:  message,
+				}
+			case Guess:
+				log.Println("Sending a Guess")
+				env = Envelope{
+					Type: "guess",
+					Msg:  message,
+				}
+			case Hint:
+				log.Println("Sending a Hint")
+				env = Envelope{
+					Type: "hint",
+					Msg:  message,
+				}
+			}
+
+			err := client.conn.WriteJSON(env)
 			if err != nil {
 				log.Println("Received error writing json to client:", err)
 				return

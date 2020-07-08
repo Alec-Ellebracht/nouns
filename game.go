@@ -80,7 +80,7 @@ type Game struct {
 	currentNoun *Noun
 	submit      chan Noun
 	guess       chan Guess
-	hint        chan Guess
+	hint        chan Hint
 }
 
 // Noun struct
@@ -108,5 +108,6 @@ type Guess struct {
 // Hint struct
 type Hint struct {
 	Hint   string
+	Noun   Noun
 	client *Client
 }

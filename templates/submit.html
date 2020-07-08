@@ -67,13 +67,10 @@
 
             // TO DO : add form validation
 
-            doSendNoun({ 
-                type: "submit",
-                msg: {
-                    person: $("#person").val(),
-                    place: $("#place").val(),
-                    thing: $("#thing").val(),
-                }
+            doSendNoun({
+                person: $("#person").val(),
+                place: $("#place").val(),
+                thing: $("#thing").val(),
             });
 
             UIkit.modal($('#noun-submit-modal')).hide();
@@ -84,11 +81,17 @@
         UIkit.modal($('#noun-submit-modal')).show();
 
         // submit the nouns to the game room
-        function doSendNoun(envelope) {
+        function doSendNoun(nouns) {
 
             if (!this.conn) { return; }
 
-            this.conn.send(JSON.stringify(envelope));
+            let envelope = JSON.stringify(
+            {
+                type: "submit",
+                msg: nouns,
+            });
+
+            this.conn.send(envelope);
         }
 
     });

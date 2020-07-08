@@ -33,11 +33,32 @@ $(document).ready(function () {
             };
     
             this.conn.onmessage = evt => {
+                
+                $('.start-btn').hide();
 
-                UIkit.modal.alert(evt.data).then(function () {
+                let envelope = JSON.parse(evt.data);
+                let data = envelope.Msg;
 
-                    console.log('Message from host..', evt.data);
-                });
+                console.log('this',data);
+
+                if (envelope.Type === 'hint') {
+
+                    $('#noun-type').html(data.Noun.Type);
+                    $('#noun-hint').html('It\'s ' + data.Hint);
+                    $('#latest-hint').prop('hidden', false);
+                }
+                else if (envelope.Type === 'guess') {
+
+                    console.log(data);
+
+                    let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span>';
+                    $('#guess-list').append(guess);
+                }
+
+                // UIkit.modal.alert(evt.data).then(function () {
+
+                //     console.log('Message from host..', evt.data);
+                // });
             };
     
         } else {
@@ -55,15 +76,18 @@ $(document).ready(function () {
         event.target.blur();
 
         $('.start-btn').hide();
-        start()
+        start();
     });
 
     function start() {
-        this.conn.send(JSON.stringify(
-            { 
-                event: "START"
-            }
-        ));
+
+        let envelope = JSON.stringify(
+        {
+            type: "start",
+            msg: {},
+        });
+
+        this.conn.send(envelope);
     }
 
 });

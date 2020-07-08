@@ -46,8 +46,6 @@ func main() {
 	mux.HandleFunc("/404", notfoundHandler)
 	mux.HandleFunc("/join", joinHandler)
 	mux.HandleFunc("/room/", roomHandler)
-	mux.HandleFunc("/submit", submitHandler)
-	mux.HandleFunc("/guess", guessHandler)
 
 	// serves all the static resources for js and css
 	mux.Handle("/resource/", http.StripPrefix("/resource/", http.FileServer(http.Dir("static"))))
@@ -195,59 +193,4 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	return
-}
-
-// Handles the Noun submission page
-func submitHandler(res http.ResponseWriter, req *http.Request) {
-
-	// // send an error back if its not a post req
-	// if req.Method != http.MethodPost {
-
-	// 	res.WriteHeader(http.StatusMethodNotAllowed)
-	// 	fmt.Fprintf(res, "invalid_http_method")
-	// 	return
-	// }
-
-	// // Must call ParseForm() before working with data
-	// req.ParseForm()
-	// log.Println(req.Form)
-
-	// intNounType, _ := strconv.Atoi(req.Form.Get("nounType"))
-
-	// n := Noun{
-	// 	nounType: NounType(intNounType),
-	// 	noun:     req.Form.Get("noun"),
-	// 	hints:    []string{req.Form.Get("hint")},
-	// }
-
-	// SubmitNoun(n)
-
-	// http.Redirect(res, req, "/guess", http.StatusFound)
-}
-
-// Handles the Noun guessing page
-func guessHandler(res http.ResponseWriter, req *http.Request) {
-
-	// // send an error back if its not a post req
-	// if req.Method == http.MethodPost {
-
-	// 	req.ParseForm()
-
-	// 	n := submissions[0]
-	// 	outcome := n.is(req.Form.Get("guess"))
-
-	// 	fmt.Fprintf(res, fmt.Sprintf("Your guess was %v", outcome))
-
-	// } else if req.Method == http.MethodGet {
-
-	// 	n := submissions[0]
-	// 	tpl.ExecuteTemplate(res, "guess.html", n)
-
-	// } else {
-
-	// 	res.WriteHeader(http.StatusMethodNotAllowed)
-	// 	fmt.Fprintf(res, "invalid_http_method")
-	// }
-
-	// return
 }
