@@ -120,3 +120,8 @@ type Hint struct {
 	Noun   Noun
 	client *Client
 }
+
+// Start struct
+type Start struct {
+	IsStarted bool
+}

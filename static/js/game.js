@@ -101,6 +101,7 @@ $(document).ready(function () {
     function handleMessage(envelope) {
 
         let data = envelope.Msg;
+        console.log('~~~ envelope',envelope);
         console.log('~~~ data',data);
 
         switch (envelope.Type) {
@@ -115,7 +116,7 @@ $(document).ready(function () {
             case 'guess':
 
                 let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span><br><br>';
-                $('#guess-list').prepend(guess);
+                $('#guess-list').prepend(coolGuess);
                 break;
 
             case 'player':

@@ -181,10 +181,14 @@ func reader(client *Client) {
 
 		case "start":
 
+			client.room.publish <- Start{true}
+
 			nouns := client.room.CurrGame.submissions
 
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(nouns), func(i, j int) { nouns[i], nouns[j] = nouns[j], nouns[i] })
+
+			time.Sleep(time.Second * 1)
 
 			client.room.publish <- Hint{
 				Hint:   "A wizarding school",
@@ -238,6 +242,12 @@ func writer(client *Client) {
 				env = Envelope{
 					Type: "hint",
 					Msg:  message,
+				}
+			case Start:
+				log.Println("Sending a start message")
+				env = Envelope{
+					Type: "start",
+					Msg:  nil,
 				}
 			}
 
