@@ -24,18 +24,9 @@ func CreateRoom() *Room {
 	atomic.AddInt64(&lastRoomID, 1)
 	roomID := atomic.LoadInt64(&lastRoomID)
 
-	game := &Game{
-		submissions: []Noun{},
-		currentNoun: nil,
-		submit:      make(chan Noun),
-		guess:       make(chan Guess),
-	}
-
-	go game.Run()
-
 	newRoom := &Room{
-		ID:       roomID,
-		CurrGame: game,
+		ID: roomID,
+		// CurrGame: game,
 		checkin:  make(chan *Client),
 		checkout: make(chan *Client),
 		publish:  make(chan interface{}),
@@ -44,6 +35,18 @@ func CreateRoom() *Room {
 
 	// add room to the list of active rooms
 	hotel[newRoom.ID] = newRoom
+
+	game := &Game{
+		room:        newRoom,
+		submissions: []Noun{},
+		currentNoun: nil,
+		submit:      make(chan Noun),
+		guess:       make(chan Guess),
+	}
+
+	newRoom.CurrGame = game
+
+	go game.Run()
 
 	// start the room in a routine
 	go newRoom.run()
@@ -86,7 +89,13 @@ func (room *Room) run() {
 			log.Println("Client checked in to room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
-			// room.publish <- "Someone else joined the room!"
+			// join := struct {
+			// 	Type string
+			// 	Msg  interface{}
+			// }{"player", struct {
+			// 	Msg string `json:"msg"`
+			// }{"Someone else joined the room!"}}
+			// room.publish <- join
 
 		case client := <-room.checkout:
 

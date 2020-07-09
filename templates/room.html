@@ -3,12 +3,9 @@
 <body>
 
     {{template "nav"}}
-    {{template "submit"}}
-    {{template "game"}}
 
-    <hr>
-    <p><strong>Room</strong>: {{.ID}}</p>
+    {{template "submit"}}
+    {{template "game" .}}
 
 </body>
-
-{{template "footer"}}
+</html>

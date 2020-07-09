@@ -33,32 +33,9 @@ $(document).ready(function () {
             };
     
             this.conn.onmessage = evt => {
-                
-                $('.start-btn').hide();
 
                 let envelope = JSON.parse(evt.data);
-                let data = envelope.Msg;
-
-                console.log('this',data);
-
-                if (envelope.Type === 'hint') {
-
-                    $('#noun-type').html(data.Noun.Type);
-                    $('#noun-hint').html('It\'s ' + data.Hint);
-                    $('#latest-hint').prop('hidden', false);
-                }
-                else if (envelope.Type === 'guess') {
-
-                    console.log(data);
-
-                    let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span>';
-                    $('#guess-list').append(guess);
-                }
-
-                // UIkit.modal.alert(evt.data).then(function () {
-
-                //     console.log('Message from host..', evt.data);
-                // });
+                handleMessage(envelope);
             };
     
         } else {
@@ -67,25 +44,108 @@ $(document).ready(function () {
         }
     }
 
+    // start the socket connection
     connect();
 
-    // button handler
+    // button handler for the start button
     UIkit.util.on('#start-btn', 'click', function (event) {
 
         event.preventDefault();
         event.target.blur();
 
         $('.start-btn').hide();
-        start();
+        $('#loading-spinner').show();
+        setTimeout(() => {
+
+            let envelope = JSON.stringify(
+                {
+                    type: "start",
+                    msg: {},
+                });
+        
+            sendEnvelope(envelope);
+            $('#loading-spinner').hide();
+
+        }, 2000);
+
     });
 
-    function start() {
+    // button handler for the player input text box
+    UIkit.util.on('#player-send-btn', 'click', function (event) {
+
+        event.preventDefault();
+        event.target.blur();
+
+        let element = $('#player-input-box');
 
         let envelope = JSON.stringify(
-        {
-            type: "start",
-            msg: {},
-        });
+            {
+                type: "guess",
+                msg: {
+                    guess: element.val(),
+                },
+            });
+    
+        sendEnvelope(envelope);
+        element.val('');
+    });
+
+    // binds the enter key to the player input text box
+    $(document).keypress(function(e){
+        if (e.which == 13){
+            $("#player-send-btn").click();
+        }
+    });
+
+    // handles all the incoming socket messages
+    function handleMessage(envelope) {
+
+        let data = envelope.Msg;
+        console.log('~~~ data',data);
+
+        switch (envelope.Type) {
+
+            case 'hint':
+
+                $('#noun-type').html(data.Noun.Type);
+                $('#noun-hint').html(data.Hint);
+                $('#latest-hint').prop('hidden', false);
+                break;
+
+            case 'guess':
+
+                let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span><br><br>';
+                $('#guess-list').prepend(guess);
+                break;
+
+            case 'player':
+
+                UIkit.notification({
+                    message: data.msg,
+                    status: 'primary',
+                    pos: 'top-right',
+                    timeout: 5000
+                });
+                break;
+
+            case 'start':
+
+                $('.start-btn').hide();
+                break;
+
+            default: 
+            
+                console.log('~~~ hmm something unexpected happened..');
+          }
+
+        // UIkit.modal.alert(evt.data).then(function () {
+
+        //     console.log('Message from host..', evt.data);
+        // });
+    }
+
+    // starts the game
+    function sendEnvelope(envelope) {
 
         this.conn.send(envelope);
     }

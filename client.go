@@ -157,7 +157,7 @@ func reader(client *Client) {
 				return
 			}
 
-			client.room.CurrGame.guess <- Guess{
+			client.room.publish <- Guess{
 				Guess:  guess.Guess,
 				client: client,
 			}
@@ -174,14 +174,12 @@ func reader(client *Client) {
 				return
 			}
 
-			client.room.CurrGame.guess <- Guess{
-				Guess:  hint.Hint,
+			client.room.CurrGame.hint <- Hint{
+				Hint:   hint.Hint,
 				client: client,
 			}
 
 		case "start":
-
-			time.Sleep(time.Second * 3)
 
 			nouns := client.room.CurrGame.submissions
 
@@ -189,17 +187,11 @@ func reader(client *Client) {
 			rand.Shuffle(len(nouns), func(i, j int) { nouns[i], nouns[j] = nouns[j], nouns[i] })
 
 			client.room.publish <- Hint{
-				Hint:   nouns[0].Noun,
+				Hint:   "A wizarding school",
 				Noun:   nouns[0],
 				client: client,
 			}
-			time.Sleep(time.Second * 3)
-			client.room.publish <- Guess{
-				Guess:  "Is it hogwarts?",
-				client: client,
-			}
 		}
-
 	}
 }
 

@@ -1,25 +1,58 @@
 {{define "game"}}
+
+<!-- spinner -->
+<div id="loading-spinner" class="uk-padding" style="display: none; text-align: center;">
+    <div>Loading</div>
+    <div class="uk-align-center" 
+        uk-spinner="ratio: 2"></div>
+</div>
+
 <!-- start button -->
-<p class="start-btn" uk-margin>
-    <button id="start-btn" class="start-btn uk-button uk-button-primary uk-button-large" disabled>Start Game</button>
+<p class="start-btn uk-align-center uk-padding-small">
+    <button 
+        id="start-btn" 
+        class="start-btn uk-button uk-button-primary uk-button-large uk-width-1-1" 
+        disabled>Start Game</button>
 </p>
 
-<!-- presents hint -->
-
-<div id="latest-hint" class="uk-section uk-section-primary uk-light" hidden>
+<!-- section for hints -->
+<div id="latest-hint" class="uk-section-xsmall uk-section-primary uk-light" hidden>
     <div class="uk-container">
 
-        <h3 id="noun-desc">Guess the <strong id="noun-type">Lorem</strong></h3>
+        <h3 id="noun-desc" >Guess the <strong id="noun-type">Lorem</strong></h3>
 
         <div class="uk-grid-match uk-child-width-1-1@m" uk-grid>
-            <p id="noun-hint">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+            <p id="noun-hint">Lorem ipsum dolor sit amet..</p>
         </div>
 
     </div>
 </div>
-<div id="guess-list" class="uk-section">
+
+<!-- section for incoming guesses -->
+<div id="guess-list" class="uk-padding-small">
     
 </div>
 
+<div class="uk-card-default uk-padding uk-position-fixed uk-position-bottom">
+
+    <!-- section for player inputs hints/guesses -->
+    <div id="player-input" class="">
+        <div class="uk-margin">
+            <div class="uk-inline uk-display-block">
+
+                <button id="player-send-btn"
+                    class="uk-form-icon uk-form-icon-flip uk-button uk-button-link" 
+                    uk-icon="icon: plus"></button>
+
+                <input type="text" 
+                    id="player-input-box" 
+                    class="uk-input" >
+            </div>
+        </div>
+    </div>
+
+    <hr>
+    <p><strong>Room</strong>: {{.ID}}</p>
+</div>
 <script src="/resource/js/game.js"></script>
 {{end}}

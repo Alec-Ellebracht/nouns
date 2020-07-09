@@ -2,14 +2,14 @@
 
 <body>
     {{template "nav"}}
-
-    <h2>Let's Play Nouns</h2>
+    <div class="uk-padding">
+    <h2>Let's Play!</h2>
     <hr>
 
         <form action="/join" method="post" class="uk-grid-small">
             <fieldset class="uk-fieldset">
         
-                <legend class="uk-legend">Create or join a room to start playing!</legend>
+                <legend class="uk-legend">Create or join a room to start.</legend>
 
                 <div class="uk-margin">
                     <label for="nickname">Name:</label>
@@ -37,7 +37,7 @@
     
             </fieldset>
         </form>
-
+    </div>
 </body>
 
 {{template "footer"}}

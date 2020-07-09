@@ -1,9 +1,10 @@
 {{define "nav"}}
 <nav class="uk-navbar uk-navbar-container">
 
-    <div class="uk-navbar-left uk-margin-small-left">
-        <a class="uk-logo" href="/">
-            <img src="/resource/img/noun.png" alt="Nouns logo" width="35" /><strong>OUNS</strong>
+    <div class="uk-navbar-left">
+        <a class="uk-navbar-item uk-logo" href="/">
+            <!-- <img src="/resource/img/noun.png" alt="Nouns logo" width="35" /><strong>OUNS</strong> -->
+            <img src="/resource/img/nouns.svg" uk-svg width="125">
         </a>
     </div>
 
@@ -15,12 +16,11 @@
             <div class="uk-offcanvas-bar uk-flex uk-flex-column">
         
                 <ul class="uk-nav uk-nav-primary uk-margin-small-top">
-                    <li class="uk-active"><a href="#">Active</a></li>
+                    <li class="uk-active"><a href="/join">Join Room</a></li>
                     <li class="uk-parent">
-                        <a href="#">Parent</a>
+                        <a href="#">Games</a>
                         <ul class="uk-nav-sub">
-                            <li><a href="#">Sub item</a></li>
-                            <li><a href="#">Sub item</a></li>
+                            <li><a href="/">Nouns</a></li>
                         </ul>
                     </li>
                 </ul>

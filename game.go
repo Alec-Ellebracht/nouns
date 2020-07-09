@@ -31,11 +31,15 @@ func (game *Game) Run() {
 
 		case guess := <-game.guess:
 
-			outcome := game.currentNoun.is(guess.Guess)
-			log.Printf("Is guess %v equal to %v? %v", guess.Guess, game.currentNoun.Noun, outcome)
+			guess.IsCorrect = game.currentNoun.is(guess.Guess)
+			log.Printf("Is guess %v equal to %v? %v", guess.Guess, game.currentNoun.Noun, guess.IsCorrect)
+
+			// game.room.publish <- guess
 
 		case hint := <-game.hint:
 			fmt.Println(hint)
+
+			// game.room.publish <- hint
 		}
 	}
 }
@@ -47,6 +51,9 @@ func (game *Game) Run() {
 //***********************************************************************************************
 
 func cleanupGame(game *Game) {
+
+	log.Println("Cleaning up the game...")
+
 	close(game.submit)
 	close(game.guess)
 	close(game.hint)
@@ -76,6 +83,7 @@ const (
 
 // Game struct
 type Game struct {
+	room        *Room
 	submissions []Noun
 	currentNoun *Noun
 	submit      chan Noun
@@ -101,8 +109,9 @@ func (n Noun) is(s string) bool {
 
 // Guess struct
 type Guess struct {
-	Guess  string
-	client *Client
+	Guess     string
+	IsCorrect bool
+	client    *Client
 }
 
 // Hint struct
