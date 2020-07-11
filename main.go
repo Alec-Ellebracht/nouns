@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"text/template"
@@ -133,18 +134,18 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 			log.Println("Error parsing Join form", err)
 		}
 
-		// guestName := req.Form["nickname"][0]
+		guestName := req.Form["nickname"][0]
 		roomID := req.Form["room"][0]
 
 		if len(roomID) > 0 {
 
-			route := fmt.Sprintf("/room/%v", roomID)
+			route := fmt.Sprintf("/room/%v?name=%v", roomID, url.QueryEscape(guestName))
 			http.Redirect(res, req, route, http.StatusSeeOther)
 
 		} else {
 
 			newRoom := CreateRoom()
-			route := fmt.Sprintf("/room/%v", newRoom.ID)
+			route := fmt.Sprintf("/room/%v?name=%v", newRoom.ID, url.QueryEscape(guestName))
 			http.Redirect(res, req, route, http.StatusSeeOther)
 		}
 
@@ -173,7 +174,7 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 
 	} else if req.Method == http.MethodGet {
 
-		roomPath := path.Base(req.URL.String())
+		roomPath := path.Base(req.URL.Path)
 		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
 
 		log.Println(req.Method, "to join", roomPath)

@@ -165,7 +165,7 @@ func reader(client *Client) {
 		case "hint":
 
 			hint := struct {
-				Hint string `json:"guess"`
+				Hint string `json:"hint"`
 			}{}
 
 			err := json.Unmarshal(msg, &hint)
@@ -174,7 +174,7 @@ func reader(client *Client) {
 				return
 			}
 
-			client.room.CurrGame.hint <- Hint{
+			client.room.publish <- Hint{
 				Hint:   hint.Hint,
 				client: client,
 			}
@@ -188,13 +188,16 @@ func reader(client *Client) {
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(nouns), func(i, j int) { nouns[i], nouns[j] = nouns[j], nouns[i] })
 
-			time.Sleep(time.Second * 1)
+			go func() {
 
-			client.room.publish <- Hint{
-				Hint:   "A wizarding school",
-				Noun:   nouns[0],
-				client: client,
-			}
+				time.Sleep(time.Second)
+
+				client.room.publish <- Hint{
+					Hint:   "A wizarding school",
+					Noun:   nouns[0],
+					client: client,
+				}
+			}()
 		}
 	}
 }

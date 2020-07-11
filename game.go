@@ -34,12 +34,16 @@ func (game *Game) Run() {
 			guess.IsCorrect = game.currentNoun.is(guess.Guess)
 			log.Printf("Is guess %v equal to %v? %v", guess.Guess, game.currentNoun.Noun, guess.IsCorrect)
 
-			// game.room.publish <- guess
+			// go func() {
+			// 	game.room.publish <- guess
+			// }()
 
 		case hint := <-game.hint:
 			fmt.Println(hint)
 
-			// game.room.publish <- hint
+			// go func() {
+			// 	game.room.publish <- hint
+			// }()
 		}
 	}
 }
@@ -83,13 +87,60 @@ const (
 
 // Game struct
 type Game struct {
-	room        *Room
-	submissions []Noun
-	currentNoun *Noun
-	submit      chan Noun
-	guess       chan Guess
-	hint        chan Hint
+	room          *Room
+	submissions   []Noun
+	currentNoun   *Noun
+	currentPlayer *Client
+	submit        chan Noun
+	guess         chan Guess
+	hint          chan Hint
 }
+
+func (game *Game) nextPlayer() *Client {
+
+	var first *Client
+	for client := range game.room.clients {
+		first = client
+		break
+	}
+
+	isNext := false
+	for client := range game.room.clients {
+
+		if client == game.currentPlayer {
+			isNext = true
+		}
+
+		if isNext {
+			return client
+		}
+	}
+
+	return first
+}
+
+func (game *Game) nextNoun() Noun {
+
+	first := game.submissions[0]
+
+	isNext := false
+	for _, noun := range game.submissions {
+
+		if &noun == game.currentNoun {
+			isNext = true
+		}
+
+		if isNext {
+			return noun
+		}
+	}
+
+	return first
+}
+
+// func (game *Game) nextRound() Noun {
+// 	return game.submissions[0]
+// }
 
 // Noun struct
 type Noun struct {
@@ -103,6 +154,8 @@ func (n Noun) PrintType() string {
 	return string(n.Type)
 }
 
+// Is compares the noun with the provided value
+// and returns true if it is a match
 func (n Noun) is(s string) bool {
 	return strings.ToLower(n.Noun) == strings.ToLower(s)
 }

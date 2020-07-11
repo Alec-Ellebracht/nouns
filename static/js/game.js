@@ -10,13 +10,11 @@ $(document).ready(function () {
         if (window['WebSocket']) {
     
             let room = window.location.pathname.split('/').slice(-1).pop();
-            console.log(room);
-
             this.conn = new WebSocket('ws://' + document.location.host + '/ws/' + room);
     
             this.conn.onopen = evt => {
 
-                console.log('Websocket opened..', evt);
+                console.info('Websocket opened..', evt);
                 $('#conn-result').html('<i>Connected to host.</i>');
             };
     
@@ -28,14 +26,21 @@ $(document).ready(function () {
     
             this.conn.onclose = evt => {
 
-                console.log('Websocket closed..', evt);
+                console.info('Websocket closed..', evt);
                 $('#conn-result').html('<i>Connection to host closed.</i>');
             };
     
             this.conn.onmessage = evt => {
 
-                let envelope = JSON.parse(evt.data);
-                handleMessage(envelope);
+                try {
+
+                    let envelope = JSON.parse(evt.data);
+                    handleMessage(envelope);
+                }
+                catch (err) {
+
+                    console.error(err);
+                }
             };
     
         } else {
@@ -64,7 +69,6 @@ $(document).ready(function () {
                 });
         
             sendEnvelope(envelope);
-            $('#loading-spinner').hide();
 
         }, 2000);
 
@@ -116,7 +120,7 @@ $(document).ready(function () {
             case 'guess':
 
                 let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span><br><br>';
-                $('#guess-list').prepend(coolGuess);
+                $('#guess-list').prepend(guess);
                 break;
 
             case 'player':
@@ -132,6 +136,8 @@ $(document).ready(function () {
             case 'start':
 
                 $('.start-btn').hide();
+                $('#loading-spinner').hide();
+
                 break;
 
             default: 

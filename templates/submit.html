@@ -1,7 +1,7 @@
 {{define "submit"}}
 
 <!-- submit modal -->
-<div id="noun-submit-modal" uk-modal>
+<div id="noun-submit-modal" uk-modal bg-close="false">
     <div class="uk-modal-dialog uk-modal-body">
 
         <form id="noun-form"
@@ -47,7 +47,7 @@
                     <input type="submit" 
                         id="send-btn"
                         name="Submit"
-                        class="uk-button uk-button-primary uk-modal-close">
+                        class="uk-button uk-button-primary">
                 </div>
 
             </fieldset>
@@ -65,13 +65,21 @@
             event.preventDefault();
             event.target.blur();
 
-            // TO DO : add form validation
+            let person = $('#person').val();
+            let place = $('#place').val();
+            let thing = $('#thing').val();
 
-            doSendNoun({
-                person: $("#person").val(),
-                place: $("#place").val(),
-                thing: $("#thing").val(),
-            });
+            //  quick form validation
+            if (!$('#noun-form')[0].checkValidity()) {
+
+                if (!person) { $('#person').addClass('uk-form-danger'); }
+                if (!place) { $('#place').addClass('uk-form-danger'); }
+                if (!thing) { $('#thing').addClass('uk-form-danger'); }
+
+                return;
+            }
+
+            doSendNoun( {person, place, thing} );
 
             UIkit.modal($('#noun-submit-modal')).hide();
             $('#start-btn').prop('disabled', false);
@@ -87,7 +95,7 @@
 
             let envelope = JSON.stringify(
             {
-                type: "submit",
+                type: 'submit',
                 msg: nouns,
             });
 
