@@ -27,12 +27,12 @@ func (game *Game) Run() {
 				game.currentNoun = &noun
 			}
 
-			log.Printf("Noun %v submitted to game..", noun.Noun)
+			log.Printf("Noun %v submitted to game..", noun.Text)
 
 		case guess := <-game.guess:
 
-			guess.IsCorrect = game.currentNoun.is(guess.Guess)
-			log.Printf("Is guess %v equal to %v? %v", guess.Guess, game.currentNoun.Noun, guess.IsCorrect)
+			guess.IsCorrect = game.currentNoun.is(guess.Text)
+			log.Printf("Is guess %v equal to %v? %v", guess.Text, game.currentNoun.Text, guess.IsCorrect)
 
 			// go func() {
 			// 	game.room.publish <- guess
@@ -126,12 +126,12 @@ func (game *Game) nextNoun() Noun {
 	isNext := false
 	for _, noun := range game.submissions {
 
-		if &noun == game.currentNoun {
-			isNext = true
-		}
-
 		if isNext {
 			return noun
+		}
+
+		if noun.Text == game.currentNoun.Text {
+			isNext = true
 		}
 	}
 
@@ -144,8 +144,8 @@ func (game *Game) nextNoun() Noun {
 
 // Noun struct
 type Noun struct {
-	Type NounType
-	Noun string
+	Type NounType `json:"type"`
+	Text string   `json:"text"`
 }
 
 // PrintType prints out the type of Noun
@@ -158,7 +158,7 @@ func (n Noun) PrintType() string {
 // and returns true if it is a match
 func (n Noun) is(guess string) bool {
 
-	lowerNoun := strings.ToLower(n.Noun)
+	lowerNoun := strings.ToLower(n.Text)
 
 	// exact match
 	if lowerNoun == strings.ToLower(guess) {
@@ -180,20 +180,20 @@ func (n Noun) is(guess string) bool {
 
 // Guess struct
 type Guess struct {
-	Guess     string
-	IsCorrect bool
-	Noun      string
+	Text      string `json:"text"`
+	IsCorrect bool   `json:"isCorrect"`
+	Noun      string `json:"noun"`
 	client    *Client
 }
 
 // Hint struct
 type Hint struct {
-	Hint   string
-	Noun   Noun
+	Text   string `json:"text"`
+	Noun   Noun   `json:"noun"`
 	client *Client
 }
 
 // Start struct
 type Start struct {
-	IsStarted bool
+	IsStarted bool `json:"isStarted"`
 }

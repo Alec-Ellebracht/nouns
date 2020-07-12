@@ -113,20 +113,23 @@ $(document).ready(function () {
 
                 $('#loading-spinner').hide();
 
-                $('#noun-type').html(data.Noun.Type);
-                $('#noun-hint').html(data.Hint);
+                $('#noun-type').html(data.noun.type);
+                $('#noun-hint').html(data.text);
                 $('#latest-hint').prop('hidden', false);
                 break;
 
             case 'guess':
 
-                let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span><br><br>';
+                let side = true ? 'uk-float-right' : 'uk-float-left';
+                let guess = '<div class="uk-badge uk-padding-small '+side+'">'
+                    +data.guess+'</div><br><br>';
+
                 $('#guess-list').prepend(guess);
 
-                if (data.IsCorrect) {
+                if (data.isCorrect) {
                     
                     UIkit.notification({
-                        message: 'The correct answer is "'+data.Guess+'"',
+                        message: 'The correct answer is "'+data.text+'"',
                         status: 'primary',
                         pos: 'top-right',
                         timeout: 5000
@@ -137,14 +140,14 @@ $(document).ready(function () {
 
             case 'noun':
                 
-                UIkit.modal.confirm('Your noun is "'+ data.Noun +'"');
-                $('#current-noun').html(data.Noun);
+                UIkit.modal.alert('Your noun is "'+ data.text +'"');
+                $('#current-noun').html(data.text);
                 break;
 
             case 'player':
 
                 UIkit.notification({
-                    message: data.Body,
+                    message: data.body,
                     status: 'primary',
                     pos: 'top-right',
                     timeout: 5000
@@ -162,10 +165,6 @@ $(document).ready(function () {
                 console.log('~~~ hmm something unexpected happened..');
           }
 
-        // UIkit.modal.alert(evt.data).then(function () {
-
-        //     console.log('Message from host..', evt.data);
-        // });
     }
 
     // starts the game

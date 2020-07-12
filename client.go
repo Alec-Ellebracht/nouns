@@ -135,15 +135,15 @@ func reader(client *Client) {
 
 			client.room.CurrGame.submit <- Noun{
 				Type: Person,
-				Noun: nouns.Person,
+				Text: nouns.Person,
 			}
 			client.room.CurrGame.submit <- Noun{
 				Type: Place,
-				Noun: nouns.Place,
+				Text: nouns.Place,
 			}
 			client.room.CurrGame.submit <- Noun{
 				Type: Thing,
-				Noun: nouns.Thing,
+				Text: nouns.Thing,
 			}
 
 		case "message":
@@ -162,7 +162,7 @@ func reader(client *Client) {
 
 				hint := message.Message
 				client.room.publish <- Hint{
-					Hint:   hint,
+					Text:   hint,
 					Noun:   *client.room.CurrGame.currentNoun,
 					client: client,
 				}
@@ -174,11 +174,17 @@ func reader(client *Client) {
 
 				var noun string
 				if isCorrect {
-					noun = client.room.CurrGame.currentNoun.Noun
+					noun = client.room.CurrGame.currentNoun.Text
+
+					go func() {
+						next := client.room.CurrGame.nextNoun()
+						client.room.CurrGame.currentNoun = &next
+						client.room.CurrGame.currentPlayer.send <- next
+					}()
 				}
 
 				client.room.publish <- Guess{
-					Guess:     guess,
+					Text:      guess,
 					IsCorrect: isCorrect,
 					Noun:      noun,
 					client:    client,
