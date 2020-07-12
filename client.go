@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -106,8 +107,8 @@ func reader(client *Client) {
 		// unmarshal to the envelope first
 		// then based on the type we further back
 		// into the specific type of message
-		var msg json.RawMessage
-		env := Envelope{Msg: &msg}
+		var body json.RawMessage
+		env := Envelope{Body: &body}
 
 		err := client.conn.ReadJSON(&env)
 		if err != nil {
@@ -126,7 +127,7 @@ func reader(client *Client) {
 				Thing  string `json:"thing"`
 			}{}
 
-			err := json.Unmarshal(msg, &nouns)
+			err := json.Unmarshal(body, &nouns)
 			if err != nil {
 				log.Println("Error unmarshalling json for submission:", err)
 				return
@@ -145,59 +146,63 @@ func reader(client *Client) {
 				Noun: nouns.Thing,
 			}
 
-		case "guess":
+		case "message":
 
-			guess := struct {
-				Guess string `json:"guess"`
+			message := struct {
+				Message string `json:"message"`
 			}{}
 
-			err := json.Unmarshal(msg, &guess)
+			err := json.Unmarshal(body, &message)
 			if err != nil {
 				log.Panicln("Error unmarshalling json for guess:", err)
 				return
 			}
 
-			client.room.publish <- Guess{
-				Guess:  guess.Guess,
-				client: client,
-			}
+			if client.room.CurrGame.currentPlayer == client {
 
-		case "hint":
+				hint := message.Message
+				client.room.publish <- Hint{
+					Hint:   hint,
+					Noun:   *client.room.CurrGame.currentNoun,
+					client: client,
+				}
 
-			hint := struct {
-				Hint string `json:"hint"`
-			}{}
+			} else {
 
-			err := json.Unmarshal(msg, &hint)
-			if err != nil {
-				log.Panicln("Error unmarshalling json for hint:", err)
-				return
-			}
+				guess := message.Message
+				isCorrect := client.room.CurrGame.currentNoun.is(guess)
 
-			client.room.publish <- Hint{
-				Hint:   hint.Hint,
-				client: client,
+				var noun string
+				if isCorrect {
+					noun = client.room.CurrGame.currentNoun.Noun
+				}
+
+				client.room.publish <- Guess{
+					Guess:     guess,
+					IsCorrect: isCorrect,
+					Noun:      noun,
+					client:    client,
+				}
+
 			}
 
 		case "start":
 
 			client.room.publish <- Start{true}
 
-			nouns := client.room.CurrGame.submissions
+			shuffled := client.room.CurrGame.submissions
 
 			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(nouns), func(i, j int) { nouns[i], nouns[j] = nouns[j], nouns[i] })
+			rand.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
 
-			go func() {
+			client.room.CurrGame.submissions = shuffled
+			client.room.CurrGame.currentNoun = &shuffled[0]
+			client.room.CurrGame.currentPlayer = client
 
-				time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
+			fmt.Println(&shuffled[0])
+			client.send <- shuffled[0]
 
-				client.room.publish <- Hint{
-					Hint:   "A wizarding school",
-					Noun:   nouns[0],
-					client: client,
-				}
-			}()
 		}
 	}
 }
@@ -232,25 +237,25 @@ func writer(client *Client) {
 				log.Println("Sending a Noun")
 				env = Envelope{
 					Type: "noun",
-					Msg:  message,
+					Body: message,
 				}
 			case Guess:
 				log.Println("Sending a Guess")
 				env = Envelope{
 					Type: "guess",
-					Msg:  message,
+					Body: message,
 				}
 			case Hint:
 				log.Println("Sending a Hint")
 				env = Envelope{
 					Type: "hint",
-					Msg:  message,
+					Body: message,
 				}
 			case Start:
 				log.Println("Sending a start message")
 				env = Envelope{
 					Type: "start",
-					Msg:  nil,
+					Body: nil,
 				}
 			}
 
@@ -306,6 +311,6 @@ type Session struct {
 
 // Envelope allows for better json comms on the websocket
 type Envelope struct {
-	Type string
-	Msg  interface{}
+	Type string      `json:"type"`
+	Body interface{} `json:"body"`
 }

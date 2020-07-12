@@ -156,14 +156,33 @@ func (n Noun) PrintType() string {
 
 // Is compares the noun with the provided value
 // and returns true if it is a match
-func (n Noun) is(s string) bool {
-	return strings.ToLower(n.Noun) == strings.ToLower(s)
+func (n Noun) is(guess string) bool {
+
+	lowerNoun := strings.ToLower(n.Noun)
+
+	// exact match
+	if lowerNoun == strings.ToLower(guess) {
+		return true
+	}
+
+	sentence := strings.Fields(guess)
+
+	match := false
+	for _, word := range sentence {
+		fmt.Println(word)
+		if lowerNoun == strings.ToLower(word) {
+			match = true
+		}
+	}
+
+	return match
 }
 
 // Guess struct
 type Guess struct {
 	Guess     string
 	IsCorrect bool
+	Noun      string
 	client    *Client
 }
 

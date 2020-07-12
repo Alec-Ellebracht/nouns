@@ -16,13 +16,17 @@
 </p>
 
 <!-- section for hints -->
-<div id="latest-hint" class="uk-section-xsmall uk-section-primary uk-light" hidden uk-sticky>
-    <div class="uk-container">
+<div id="latest-hint" 
+    class="uk-section-xsmall uk-section-primary uk-light uk-animation-fade" 
+    uk-sticky
+    hidden >
+
+    <div class="uk-container uk-animation-slide-left">
 
         <h3 id="noun-desc" >Guess the <strong id="noun-type">Lorem</strong></h3>
 
         <div class="uk-grid-match uk-child-width-1-1@m" uk-grid>
-            <p id="noun-hint">Lorem ipsum dolor sit amet..</p>
+            <p class="uk-animation-slide-left" id="noun-hint">Lorem ipsum dolor sit amet..</p>
         </div>
 
     </div>
@@ -52,7 +56,8 @@
     </div>
 
     <hr>
-    <p><strong>Room</strong>: {{.ID}}</p>
+    <p><strong>Room</strong>: {{.ID}}<br>
+    <strong>Noun</strong>:&nbsp;<span id="current-noun"></span></p>
 </div>
 <script src="/resource/js/game.js"></script>
 {{end}}

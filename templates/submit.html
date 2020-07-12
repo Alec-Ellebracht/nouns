@@ -59,7 +59,7 @@
 <script>
     $(document).ready(function () { 
 
-        // button handler
+        // send button handler
         UIkit.util.on('#send-btn', 'click', function (event) {
 
             event.preventDefault();
@@ -96,7 +96,7 @@
             let envelope = JSON.stringify(
             {
                 type: 'submit',
-                msg: nouns,
+                body: nouns,
             });
 
             this.conn.send(envelope);

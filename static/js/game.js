@@ -84,11 +84,10 @@ $(document).ready(function () {
 
         let envelope = JSON.stringify(
             {
-                type: "guess",
-                msg: {
-                    guess: element.val(),
-                },
+                type: "message",
+                body: { message: element.val() },
             });
+            console.log(envelope);
     
         sendEnvelope(envelope);
         element.val('');
@@ -104,13 +103,15 @@ $(document).ready(function () {
     // handles all the incoming socket messages
     function handleMessage(envelope) {
 
-        let data = envelope.Msg;
+        let data = envelope.body;
         console.log('~~~ envelope',envelope);
         console.log('~~~ data',data);
 
-        switch (envelope.Type) {
+        switch (envelope.type) {
 
             case 'hint':
+
+                $('#loading-spinner').hide();
 
                 $('#noun-type').html(data.Noun.Type);
                 $('#noun-hint').html(data.Hint);
@@ -121,12 +122,29 @@ $(document).ready(function () {
 
                 let guess = '<span class="uk-badge uk-padding-small">'+data.Guess+'</span><br><br>';
                 $('#guess-list').prepend(guess);
+
+                if (data.IsCorrect) {
+                    
+                    UIkit.notification({
+                        message: 'The correct answer is "'+data.Guess+'"',
+                        status: 'primary',
+                        pos: 'top-right',
+                        timeout: 5000
+                    });
+                }
+
+                break;
+
+            case 'noun':
+                
+                UIkit.modal.confirm('Your noun is "'+ data.Noun +'"');
+                $('#current-noun').html(data.Noun);
                 break;
 
             case 'player':
 
                 UIkit.notification({
-                    message: data.msg,
+                    message: data.Body,
                     status: 'primary',
                     pos: 'top-right',
                     timeout: 5000
@@ -136,8 +154,7 @@ $(document).ready(function () {
             case 'start':
 
                 $('.start-btn').hide();
-                $('#loading-spinner').hide();
-
+                $('#loading-spinner').show();
                 break;
 
             default: 
