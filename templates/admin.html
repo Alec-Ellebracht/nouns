@@ -1,0 +1,18 @@
+{{template "header"}}
+
+<body>
+    {{template "nav"}}
+    <div class="uk-padding">
+        <h1>Admin</h1>
+        <hr>
+        <ul class="uk-list uk-list-divider">
+            <li>Routines: {{ .Routines }}</li>
+            <li>CPUs: {{ .Cpus }}</li>
+            <li>Rooms: {{ .Rooms }}</li>
+            <li>Clients: {{ .Clients }}</li>
+            <li>Sessions: {{ .Sessions }}</li>
+        </ul>
+    </div>
+</body>
+
+{{template "footer"}}

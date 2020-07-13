@@ -28,9 +28,9 @@ var lastClean = time.Now()
 func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 	client := &Client{
-		room,
-		conn,
-		make(chan interface{}),
+		room: room,
+		conn: conn,
+		send: make(chan interface{}),
 	}
 
 	sessions[sid] = &Session{client, time.Now()}
@@ -81,9 +81,20 @@ func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
 }
 
 // ActiveSession checks to see if the vistor has a session id or not
-func ActiveSession(res http.ResponseWriter, req *http.Request) bool {
-	_, err := req.Cookie("sid")
-	return err == nil
+func ActiveSession(res http.ResponseWriter, req *http.Request) (string, bool) {
+	sid, err := req.Cookie("sid")
+	return sid.Value, err == nil
+}
+
+// SetName finds the client object and sets the name field
+// once the player tells us what it is
+func SetName(sid string, name string) {
+	session, ok := sessions[sid]
+	if !ok {
+		log.Println("name not set for", sid)
+		return
+	}
+	session.client.name = name
 }
 
 //***********************************************************************************************
@@ -187,6 +198,7 @@ func reader(client *Client) {
 					Text:      guess,
 					IsCorrect: isCorrect,
 					Noun:      noun,
+					Player:    client.name,
 					client:    client,
 				}
 
@@ -194,6 +206,7 @@ func reader(client *Client) {
 
 		case "start":
 
+			// TO DO : move to game file
 			client.room.publish <- Start{true}
 
 			shuffled := client.room.CurrGame.submissions
@@ -306,6 +319,7 @@ func cleanSessionStorage() {
 type Client struct {
 	room *Room
 	conn *websocket.Conn
+	name string
 	send chan interface{}
 }
 

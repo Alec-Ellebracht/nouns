@@ -120,9 +120,9 @@ $(document).ready(function () {
 
             case 'guess':
 
-                let side = true ? 'uk-float-right' : 'uk-float-left';
+                let side = false ? 'uk-float-right' : 'uk-float-left';
                 let guess = '<div class="uk-badge uk-padding-small '+side+'">'
-                    +data.guess+'</div><br><br>';
+                    +data.text+'</div><br><br>';
 
                 $('#guess-list').prepend(guess);
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"runtime"
 	"strconv"
 	"text/template"
 
@@ -45,6 +46,7 @@ func main() {
 	mux.HandleFunc("/favicon.ico", faviconHandler)
 	mux.HandleFunc("/ws/", socketHandler)
 	mux.HandleFunc("/404", notfoundHandler)
+	mux.HandleFunc("/admin", adminHandler)
 	mux.HandleFunc("/join", joinHandler)
 	mux.HandleFunc("/room/", roomHandler)
 
@@ -164,15 +166,24 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 // Handles the room page
 func roomHandler(res http.ResponseWriter, req *http.Request) {
 
-	if !ActiveSession(res, req) {
+	sid, activeSession := ActiveSession(res, req)
+
+	if !activeSession {
 
 		http.Redirect(res, req, "/join", http.StatusSeeOther)
 
-	} else if req.Method == http.MethodPost {
-
-		log.Println(req.Method, "to ROOM handler")
-
 	} else if req.Method == http.MethodGet {
+
+		keys, ok := req.URL.Query()["name"]
+
+		if !ok || len(keys[0]) < 1 {
+
+			log.Println("Missing client name")
+			keys[0] = "annonymous"
+		}
+
+		name := keys[0]
+		SetName(sid, name)
 
 		roomPath := path.Base(req.URL.Path)
 		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
@@ -194,4 +205,27 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	return
+}
+
+// Handles the admin page
+func adminHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	adminData := struct {
+		Routines int
+		Cpus     int
+		Rooms    int
+		Sessions int
+	}{
+		runtime.NumGoroutine(),
+		runtime.NumCPU(),
+		len(hotel),
+		len(sessions),
+	}
+
+	tpl.ExecuteTemplate(res, "admin.html", adminData)
 }

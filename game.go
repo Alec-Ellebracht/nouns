@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 )
 
@@ -156,12 +157,18 @@ func (n Noun) PrintType() string {
 
 // Is compares the noun with the provided value
 // and returns true if it is a match
-func (n Noun) is(guess string) bool {
+func (n Noun) is(s string) bool {
 
-	lowerNoun := strings.ToLower(n.Text)
+	nonLetter, err := regexp.Compile(`[^\w]`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	noun := nonLetter.ReplaceAllString(strings.ToLower(n.Text), " ")
+	guess := nonLetter.ReplaceAllString(strings.ToLower(s), " ")
 
 	// exact match
-	if lowerNoun == strings.ToLower(guess) {
+	if noun == guess {
 		return true
 	}
 
@@ -169,8 +176,8 @@ func (n Noun) is(guess string) bool {
 
 	match := false
 	for _, word := range sentence {
-		fmt.Println(word)
-		if lowerNoun == strings.ToLower(word) {
+
+		if noun == word {
 			match = true
 		}
 	}
@@ -183,6 +190,7 @@ type Guess struct {
 	Text      string `json:"text"`
 	IsCorrect bool   `json:"isCorrect"`
 	Noun      string `json:"noun"`
+	Player    string `json:"player"`
 	client    *Client
 }
 
