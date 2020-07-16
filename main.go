@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"path"
 	"runtime"
 	"strconv"
@@ -79,6 +77,90 @@ func notfoundHandler(res http.ResponseWriter, req *http.Request) {
 	tpl.ExecuteTemplate(res, "notfound.html", nil)
 }
 
+// Handles the admin page
+func adminHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	adminData := struct {
+		Routines int
+		Cpus     int
+		Rooms    int
+		Sessions int
+	}{
+		runtime.NumGoroutine(),
+		runtime.NumCPU(),
+		len(hotel),
+		len(sessions),
+	}
+
+	tpl.ExecuteTemplate(res, "admin.html", adminData)
+}
+
+// Handles the join page
+func joinHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method == http.MethodPost {
+
+		err := req.ParseForm()
+		if err != nil {
+			log.Println("Error parsing Join form", err)
+			http.Error(res, "Oh poop, something went wrong reading your request.", http.StatusBadRequest)
+		}
+
+		AddCookies(res, req)
+		roomPath := GenerateRoomPath(req.Form)
+
+		http.Redirect(res, req, roomPath, http.StatusSeeOther)
+
+	} else if req.Method == http.MethodGet {
+
+		tpl.ExecuteTemplate(res, "join.html", nil)
+
+	} else {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	return
+}
+
+// Handles the room page
+func roomHandler(res http.ResponseWriter, req *http.Request) {
+
+	sid, isActive := ActiveSession(res, req)
+
+	if !isActive {
+
+		http.Redirect(res, req, "/join", http.StatusSeeOther)
+
+	} else if req.Method == http.MethodGet {
+
+		roomPath := path.Base(req.URL.Path)
+		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
+
+		log.Println(req.Method, "to join", roomPath)
+
+		room, ok := GetRoom(roomID)
+		if !ok {
+
+			http.Redirect(res, req, "/404", http.StatusSeeOther)
+			return
+		}
+
+		tpl.ExecuteTemplate(res, "room.html", room)
+
+	} else {
+
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	}
+
+	return
+}
+
 // To upgrade a http connection to a websocket
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -89,9 +171,6 @@ var upgrader = websocket.Upgrader{
 
 // Handles incoming websockets requests
 func socketHandler(res http.ResponseWriter, req *http.Request) {
-
-	// TO DO : add req parsing to get a specifc room
-	// or a request to create a new room
 
 	roomPath := path.Base(req.URL.String())
 	roomID, _ := strconv.ParseInt(roomPath, 10, 64)
@@ -117,115 +196,6 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	log.Println("Client upgraded to websocket in room", roomID)
 
 	// create the new client
-	sid := CheckAndSetSession(res, req)
-	NewClient(room, conn, sid)
-}
-
-// Handles the join page
-func joinHandler(res http.ResponseWriter, req *http.Request) {
-
-	// TO DO : create sessions in a better spot
-	sid := CheckAndSetSession(res, req)
-	log.Printf("Checked sid %T", sid)
-
-	// send an error back if its not a post req
-	if req.Method == http.MethodPost {
-
-		err := req.ParseForm()
-		if err != nil {
-			log.Println("Error parsing Join form", err)
-		}
-
-		guestName := req.Form["nickname"][0]
-		roomID := req.Form["room"][0]
-
-		if len(roomID) > 0 {
-
-			route := fmt.Sprintf("/room/%v?name=%v", roomID, url.QueryEscape(guestName))
-			http.Redirect(res, req, route, http.StatusSeeOther)
-
-		} else {
-
-			newRoom := CreateRoom()
-			route := fmt.Sprintf("/room/%v?name=%v", newRoom.ID, url.QueryEscape(guestName))
-			http.Redirect(res, req, route, http.StatusSeeOther)
-		}
-
-	} else if req.Method == http.MethodGet {
-
-		tpl.ExecuteTemplate(res, "join.html", nil)
-
-	} else {
-
-		http.Redirect(res, req, "/404", http.StatusSeeOther)
-	}
-
-	return
-}
-
-// Handles the room page
-func roomHandler(res http.ResponseWriter, req *http.Request) {
-
-	sid, activeSession := ActiveSession(res, req)
-
-	if !activeSession {
-
-		http.Redirect(res, req, "/join", http.StatusSeeOther)
-
-	} else if req.Method == http.MethodGet {
-
-		keys, ok := req.URL.Query()["name"]
-
-		if !ok || len(keys[0]) < 1 {
-
-			log.Println("Missing client name")
-			keys[0] = "annonymous"
-		}
-
-		name := keys[0]
-		SetName(sid, name)
-
-		roomPath := path.Base(req.URL.Path)
-		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
-
-		log.Println(req.Method, "to join", roomPath)
-
-		room, ok := GetRoom(roomID)
-		if !ok {
-
-			http.Redirect(res, req, "/404", http.StatusSeeOther)
-			return
-		}
-
-		tpl.ExecuteTemplate(res, "room.html", room)
-
-	} else {
-
-		http.Redirect(res, req, "/404", http.StatusSeeOther)
-	}
-
-	return
-}
-
-// Handles the admin page
-func adminHandler(res http.ResponseWriter, req *http.Request) {
-
-	if req.Method != http.MethodGet {
-
-		http.Redirect(res, req, "/404", http.StatusSeeOther)
-	}
-
-	adminData := struct {
-		Routines int
-		Cpus     int
-		Rooms    int
-		Sessions int
-	}{
-		runtime.NumGoroutine(),
-		runtime.NumCPU(),
-		len(hotel),
-		len(sessions),
-	}
-
-	tpl.ExecuteTemplate(res, "admin.html", adminData)
+	sid, _ := ActiveSession(res, req)
+	NewClient(sid, room, conn)
 }

@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -25,7 +23,7 @@ var lastClean = time.Now()
 // NewClient checks the session id cookie to see if the client
 // already has an open session and either connects them back to
 // their open session or creates a new one
-func NewClient(room *Room, conn *websocket.Conn, sid string) {
+func NewClient(sid string, room *Room, conn *websocket.Conn) {
 
 	client := &Client{
 		room: room,
@@ -44,40 +42,11 @@ func NewClient(room *Room, conn *websocket.Conn, sid string) {
 
 }
 
-// CheckAndSetSession gets the uuid session id if it exists in the cookies
-// else it will add a new session id
-func CheckAndSetSession(res http.ResponseWriter, req *http.Request) string {
-
-	sid, err := req.Cookie("sid")
-
-	maxSession := int(time.Duration(time.Hour)/time.Second) * 2
-
-	if err == http.ErrNoCookie {
-
-		sid = &http.Cookie{
-
-			Name:  "sid",
-			Value: uuid.New().String(),
-			// Secure: true,
-			HttpOnly: true,
-			MaxAge:   maxSession,
-		}
-
-	} else if err != nil {
-
-		log.Println("Error checking cookie..", err)
-
-	} else {
-
-		// bump out the session
-		sid.MaxAge = maxSession
-	}
-
-	http.SetCookie(res, sid)
-
-	go cleanSessionStorage()
-
-	return sid.Value
+// AddCookies gets the uuid session id if it exists in the cookies
+// else it will add a new session id along with the users chosen nickname
+func AddCookies(res http.ResponseWriter, req *http.Request) {
+	addGuestName(res, req)
+	addSessionID(res, req)
 }
 
 // ActiveSession checks to see if the vistor has a session id or not
@@ -132,30 +101,32 @@ func reader(client *Client) {
 
 		case "submit":
 
-			nouns := struct {
+			submission := struct {
 				Person string `json:"person"`
 				Place  string `json:"place"`
 				Thing  string `json:"thing"`
 			}{}
 
-			err := json.Unmarshal(body, &nouns)
+			err := json.Unmarshal(body, &submission)
 			if err != nil {
 				log.Println("Error unmarshalling json for submission:", err)
 				return
 			}
 
-			client.room.CurrGame.submit <- Noun{
+			person := Noun{
 				Type: Person,
-				Text: nouns.Person,
+				Text: submission.Person,
 			}
-			client.room.CurrGame.submit <- Noun{
+			place := Noun{
 				Type: Place,
-				Text: nouns.Place,
+				Text: submission.Place,
 			}
-			client.room.CurrGame.submit <- Noun{
+			thing := Noun{
 				Type: Thing,
-				Text: nouns.Thing,
+				Text: submission.Thing,
 			}
+
+			client.room.CurrGame.Nouns.Add(person, place, thing)
 
 		case "message":
 
@@ -165,43 +136,40 @@ func reader(client *Client) {
 
 			err := json.Unmarshal(body, &message)
 			if err != nil {
-				log.Panicln("Error unmarshalling json for guess:", err)
+				log.Panicln("Error unmarshalling json for message:", err)
 				return
 			}
 
-			if client.room.CurrGame.currentPlayer == client {
+			if client.room.CurrGame.Presenter == client {
 
 				hint := message.Message
 				client.room.publish <- Hint{
 					Text:   hint,
-					Noun:   *client.room.CurrGame.currentNoun,
+					Noun:   *client.room.CurrGame.CurrentNoun,
 					client: client,
 				}
 
 			} else {
 
-				guess := message.Message
-				isCorrect := client.room.CurrGame.currentNoun.is(guess)
+				guess := &Guess{
+					Text:   message.Message,
+					Noun:   client.room.CurrGame.CurrentNoun.Text,
+					Player: client.name,
+					client: client,
+				}
 
-				var noun string
+				isCorrect := client.room.CurrGame.DoGuess(guess)
+
 				if isCorrect {
-					noun = client.room.CurrGame.currentNoun.Text
 
 					go func() {
-						next := client.room.CurrGame.nextNoun()
-						client.room.CurrGame.currentNoun = &next
-						client.room.CurrGame.currentPlayer.send <- next
+						next := client.room.CurrGame.Nouns.Next()
+						client.room.CurrGame.CurrentNoun = next
+						client.room.CurrGame.Presenter.send <- next
 					}()
 				}
 
-				client.room.publish <- Guess{
-					Text:      guess,
-					IsCorrect: isCorrect,
-					Noun:      noun,
-					Player:    client.name,
-					client:    client,
-				}
-
+				client.room.publish <- guess
 			}
 
 		case "start":
@@ -209,18 +177,11 @@ func reader(client *Client) {
 			// TO DO : move to game file
 			client.room.publish <- Start{true}
 
-			shuffled := client.room.CurrGame.submissions
-
-			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
-
-			client.room.CurrGame.submissions = shuffled
-			client.room.CurrGame.currentNoun = &shuffled[0]
-			client.room.CurrGame.currentPlayer = client
+			client.room.CurrGame.Start()
 
 			time.Sleep(time.Second * 2)
-			fmt.Println(&shuffled[0])
-			client.send <- shuffled[0]
+
+			client.send <- client.room.CurrGame.CurrentNoun
 
 		}
 	}
@@ -285,6 +246,67 @@ func writer(client *Client) {
 			}
 		}
 	}
+}
+
+// addGuestName adds the nickname for the guest
+func addGuestName(res http.ResponseWriter, req *http.Request) {
+
+	err := req.ParseForm()
+	if err != nil {
+		log.Println("Error parsing Join form", err)
+		http.Error(res, "Oh poop, something went wrong reading your request.", http.StatusBadRequest)
+	}
+
+	// get the guest name from the form
+	// or use annonymous
+	gn := "annonymous"
+	xgn := req.Form["nickname"]
+	if len(xgn) > 0 {
+		gn = xgn[0]
+	}
+
+	gnc := &http.Cookie{
+		Name:     "guestname",
+		Value:    gn,
+		HttpOnly: true,
+		MaxAge:   -1,
+	}
+
+	http.SetCookie(res, gnc)
+}
+
+// addSessionId adds or bumps out the guests session
+func addSessionID(res http.ResponseWriter, req *http.Request) {
+
+	sid, err := req.Cookie("sid")
+
+	maxSession := int(time.Duration(time.Hour)/time.Second) * 2
+
+	if err == http.ErrNoCookie {
+
+		sid = &http.Cookie{
+
+			Name:  "sid",
+			Value: uuid.New().String(),
+			// Secure: true,
+			HttpOnly: true,
+			MaxAge:   maxSession,
+		}
+
+	} else if err != nil {
+
+		log.Println("Error checking sid cookie..", err)
+
+	} else {
+
+		// bump out the session
+		sid.MaxAge = maxSession
+	}
+
+	http.SetCookie(res, sid)
+
+	// TO DO : put this in a better spot
+	go cleanSessionStorage()
 }
 
 // CleanSessionStorage periodically goes through all the stored sessions
