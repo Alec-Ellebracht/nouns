@@ -131,7 +131,7 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 // Handles the room page
 func roomHandler(res http.ResponseWriter, req *http.Request) {
 
-	sid, isActive := ActiveSession(res, req)
+	_, isActive := ActiveSession(res, req)
 
 	if !isActive {
 
@@ -176,14 +176,6 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	roomID, _ := strconv.ParseInt(roomPath, 10, 64)
 	log.Println("Socket attempt to connect to room", roomPath)
 
-	room, ok := GetRoom(roomID)
-	if !ok {
-
-		log.Println("Socket error finding room", roomPath)
-		http.Error(res, "We couldn't find the room you were looking for.", http.StatusNotFound)
-		return
-	}
-
 	// upgrade the req to a websocket
 	conn, err := upgrader.Upgrade(res, req, nil)
 
@@ -194,6 +186,20 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Println("Client upgraded to websocket in room", roomID)
+
+	room, ok := GetRoom(roomID)
+	if !ok {
+
+		log.Println("Socket error finding room", roomPath)
+
+		conn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "We couldn't find the room you were looking for."))
+
+		conn.Close()
+
+		return
+	}
 
 	// create the new client
 	sid, _ := ActiveSession(res, req)

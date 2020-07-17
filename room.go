@@ -39,7 +39,8 @@ func CreateRoom() *Room {
 	hotel[newRoom.ID] = newRoom
 
 	game := &Game{
-		Room: newRoom,
+		Room:      newRoom,
+		Broadcast: newRoom.publish,
 	}
 
 	newRoom.CurrGame = game
@@ -107,6 +108,7 @@ func (room *Room) run() {
 		case client := <-room.checkin:
 
 			room.clients[client] = true
+			room.CurrGame.Join(client)
 
 			log.Println("Client checked in to room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))

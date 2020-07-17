@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -28,6 +29,7 @@ func NewClient(sid string, room *Room, conn *websocket.Conn) {
 	client := &Client{
 		room: room,
 		conn: conn,
+		sid:  sid,
 		send: make(chan interface{}),
 	}
 
@@ -53,17 +55,6 @@ func AddCookies(res http.ResponseWriter, req *http.Request) {
 func ActiveSession(res http.ResponseWriter, req *http.Request) (string, bool) {
 	sid, err := req.Cookie("sid")
 	return sid.Value, err == nil
-}
-
-// SetName finds the client object and sets the name field
-// once the player tells us what it is
-func SetName(sid string, name string) {
-	session, ok := sessions[sid]
-	if !ok {
-		log.Println("name not set for", sid)
-		return
-	}
-	session.client.name = name
 }
 
 //***********************************************************************************************
@@ -140,10 +131,10 @@ func reader(client *Client) {
 				return
 			}
 
-			if client.room.CurrGame.Presenter == client {
+			if client.room.CurrGame.Presenter.client.sid == client.sid {
 
 				hint := message.Message
-				client.room.publish <- Hint{
+				client.room.publish <- &Hint{
 					Text:   hint,
 					Noun:   *client.room.CurrGame.CurrentNoun,
 					client: client,
@@ -153,36 +144,16 @@ func reader(client *Client) {
 
 				guess := &Guess{
 					Text:   message.Message,
-					Noun:   client.room.CurrGame.CurrentNoun.Text,
 					Player: client.name,
 					client: client,
 				}
 
-				isCorrect := client.room.CurrGame.DoGuess(guess)
-
-				if isCorrect {
-
-					go func() {
-						next := client.room.CurrGame.Nouns.Next()
-						client.room.CurrGame.CurrentNoun = next
-						client.room.CurrGame.Presenter.send <- next
-					}()
-				}
-
-				client.room.publish <- guess
+				client.room.CurrGame.DoGuess(guess)
 			}
 
 		case "start":
 
-			// TO DO : move to game file
-			client.room.publish <- Start{true}
-
 			client.room.CurrGame.Start()
-
-			time.Sleep(time.Second * 2)
-
-			client.send <- client.room.CurrGame.CurrentNoun
-
 		}
 	}
 }
@@ -213,19 +184,19 @@ func writer(client *Client) {
 			env := Envelope{}
 
 			switch message.(type) {
-			case Noun:
+			case *Noun:
 				log.Println("Sending a Noun")
 				env = Envelope{
 					Type: "noun",
 					Body: message,
 				}
-			case Guess:
+			case *Guess:
 				log.Println("Sending a Guess")
 				env = Envelope{
 					Type: "guess",
 					Body: message,
 				}
-			case Hint:
+			case *Hint:
 				log.Println("Sending a Hint")
 				env = Envelope{
 					Type: "hint",
@@ -238,6 +209,8 @@ func writer(client *Client) {
 					Body: nil,
 				}
 			}
+
+			fmt.Println(env)
 
 			err := client.conn.WriteJSON(env)
 			if err != nil {
@@ -341,6 +314,7 @@ func cleanSessionStorage() {
 type Client struct {
 	room *Room
 	conn *websocket.Conn
+	sid  string
 	name string
 	send chan interface{}
 }

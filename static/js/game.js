@@ -3,6 +3,7 @@ $(document).ready(function () {
 
     // Makes a websocket connection
     let conn;
+    let reconnect = 0;
     function connect () {
 
         if (conn) { return; }
@@ -28,6 +29,12 @@ $(document).ready(function () {
 
                 console.info('Websocket closed..', evt);
                 $('#conn-result').html('<i>Connection to host closed.</i>');
+
+                if (evt.code == 1006 && reconnect <= 5) {
+                    reconnect++;
+                    setTimeout(function(){ connect(); }, 2000);
+                    
+                }
             };
     
             this.conn.onmessage = evt => {

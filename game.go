@@ -32,15 +32,16 @@ const (
 
 // Game struct
 type Game struct {
-	Room         *Room
-	Nouns        Bowl
-	Players      Group
-	Presenter    *Player
-	Host         *Player
-	CurrentNoun  *Noun
-	StartingTime time.Duration
-	Rounds       int
-	Broadcast    chan interface{}
+	Room          *Room
+	Nouns         Bowl
+	Players       Group
+	PresenterTEMP *Client
+	Presenter     *Player
+	Host          *Player
+	CurrentNoun   *Noun
+	StartingTime  time.Duration
+	Rounds        int
+	Broadcast     chan interface{}
 }
 
 // NewGame constructor for a game
@@ -68,23 +69,46 @@ func (g *Game) Start() {
 	g.Presenter = g.Players.First()
 	g.CurrentNoun = g.Nouns.First()
 
+	g.Broadcast <- Start{true}
+
+	time.Sleep(time.Millisecond * 500)
+	g.Presenter.client.send <- g.CurrentNoun
+
 }
 
 // DoGuess checks the guess against the current noun
-func (g *Game) DoGuess(guess *Guess) bool {
+func (g *Game) DoGuess(guess *Guess) {
 
+	// check the guess
 	if g.CurrentNoun.Is(guess.Text) {
+
 		guess.IsCorrect = true
-		g.CurrentNoun = g.Nouns.Next()
+		guess.Noun = g.CurrentNoun.Text
 	}
-	return guess.IsCorrect
+
+	// send out the results
+	g.Broadcast <- guess
+
+	// if it was correct send the next noun
+	if guess.IsCorrect {
+
+		time.Sleep(time.Millisecond * 500)
+		g.CurrentNoun = g.Nouns.Next()
+		g.Presenter.client.send <- g.CurrentNoun
+	}
 }
 
 // DoPass moves to the next noun in the bowl
-func (g *Game) DoPass() *Noun {
+func (g *Game) DoPass() {
 
 	g.CurrentNoun = g.Nouns.Next()
-	return g.CurrentNoun
+	g.Presenter.client.send <- g.CurrentNoun
+}
+
+// Join adds the client as a player
+func (g *Game) Join(c *Client) {
+
+	g.Players.Add(&Player{client: c})
 }
 
 // Bowl struct
@@ -121,8 +145,15 @@ func (b *Bowl) Shuffle() {
 }
 
 // Add appends an item to the list
+// chucks blanks and 1 char words
 func (b *Bowl) Add(nouns ...Noun) {
-	b.All = append(b.All, nouns...)
+
+	for _, n := range nouns {
+		if len(n.Text) > 1 {
+
+			b.All = append(b.All, n)
+		}
+	}
 }
 
 // Noun struct
@@ -163,7 +194,7 @@ func (n Noun) Is(s string) bool {
 
 // Player struct
 type Player struct {
-	Name  string
+	Client
 	Score int
 }
 
@@ -228,4 +259,9 @@ type Hint struct {
 	Text   string `json:"text"`
 	Noun   Noun   `json:"noun"`
 	client *Client
+}
+
+// Start struct
+type Start struct {
+	IsStarted bool
 }
