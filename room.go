@@ -107,10 +107,11 @@ func (room *Room) run() {
 
 		case client := <-room.checkin:
 
+			log.Println("Client checked in to room..")
+
 			room.clients[client] = true
 			room.CurrGame.Join(client)
 
-			log.Println("Client checked in to room..")
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
 		case client := <-room.checkout:
@@ -124,7 +125,7 @@ func (room *Room) run() {
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
 		case message := <-room.publish:
-
+			fmt.Println("room sending to clients", message)
 			for client := range room.clients {
 
 				select {

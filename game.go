@@ -18,10 +18,16 @@ import (
 // this is a Person, Place or Thing
 type NounType string
 
+// Action is an action that
+// can be performed by players
+type Action string
+
 const (
 	Person NounType = "person"
 	Place  NounType = "place"
 	Thing  NounType = "thing"
+	Join   Action   = "join"
+	Leave  Action   = "leave"
 )
 
 //***********************************************************************************************
@@ -32,16 +38,16 @@ const (
 
 // Game struct
 type Game struct {
-	Room          *Room
-	Nouns         Bowl
-	Players       Group
-	PresenterTEMP *Client
-	Presenter     *Player
-	Host          *Player
-	CurrentNoun   *Noun
-	StartingTime  time.Duration
-	Rounds        int
-	Broadcast     chan interface{}
+	Room         *Room
+	Nouns        Bowl
+	Players      Group
+	Presenter    *Player
+	Host         *Player
+	CurrentNoun  *Noun
+	IsStarted    bool
+	StartingTime time.Duration
+	Rounds       int
+	Broadcast    chan interface{}
 }
 
 // NewGame constructor for a game
@@ -63,6 +69,12 @@ func NewGame(host *Player) Game {
 // Start begins the game
 func (g *Game) Start() {
 
+	// skip if we've already started this game
+	if g.IsStarted {
+		return
+	}
+
+	g.IsStarted = true
 	g.Players.Shuffle()
 	g.Nouns.Shuffle()
 
@@ -71,8 +83,10 @@ func (g *Game) Start() {
 
 	g.Broadcast <- Start{true}
 
+	// browser kills the socket if we
+	// send 2 messages rapid fire so delay
 	time.Sleep(time.Millisecond * 500)
-	g.Presenter.client.send <- g.CurrentNoun
+	g.Presenter.send <- g.CurrentNoun
 
 }
 
@@ -87,14 +101,14 @@ func (g *Game) DoGuess(guess *Guess) {
 	}
 
 	// send out the results
-	g.Broadcast <- guess
+	g.broadcast(guess)
 
 	// if it was correct send the next noun
 	if guess.IsCorrect {
 
 		time.Sleep(time.Millisecond * 500)
 		g.CurrentNoun = g.Nouns.Next()
-		g.Presenter.client.send <- g.CurrentNoun
+		g.Presenter.send <- g.CurrentNoun
 	}
 }
 
@@ -102,13 +116,28 @@ func (g *Game) DoGuess(guess *Guess) {
 func (g *Game) DoPass() {
 
 	g.CurrentNoun = g.Nouns.Next()
-	g.Presenter.client.send <- g.CurrentNoun
+	g.Presenter.send <- g.CurrentNoun
 }
 
 // Join adds the client as a player
 func (g *Game) Join(c *Client) {
 
-	g.Players.Add(&Player{client: c})
+	p := &Player{Client: c}
+	g.Players.Add(p)
+
+	// let everyone know who joined
+	g.broadcast(PlayerAction{
+		Player: *p,
+		Action: Join,
+	})
+}
+
+// broadcast sends the payload to the channel
+func (g *Game) broadcast(i interface{}) {
+
+	go func() {
+		g.Broadcast <- i
+	}()
 }
 
 // Bowl struct
@@ -171,8 +200,11 @@ func (n Noun) Is(s string) bool {
 		log.Fatal(err)
 	}
 
-	noun := nonLetter.ReplaceAllString(strings.ToLower(n.Text), " ")
-	guess := nonLetter.ReplaceAllString(strings.ToLower(s), " ")
+	noun := nonLetter.ReplaceAllString(
+		strings.ToLower(n.Text), " ")
+
+	guess := nonLetter.ReplaceAllString(
+		strings.ToLower(s), " ")
 
 	// exact match
 	if noun == guess {
@@ -194,18 +226,19 @@ func (n Noun) Is(s string) bool {
 
 // Player struct
 type Player struct {
-	Client
-	Score int
+	*Client
+	Score int `json:"score"`
+}
+
+// PlayerAction composite
+type PlayerAction struct {
+	Player `json:"player"`
+	Action `json:"action"`
 }
 
 // IncrementScore adds to the players current score
 func (p *Player) IncrementScore(i int) {
 	p.Score += i
-}
-
-// SetName adds to the players current score
-func (p *Player) SetName(s string) {
-	p.Name = s
 }
 
 // Group struct

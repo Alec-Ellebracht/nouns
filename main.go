@@ -18,7 +18,7 @@ import (
 //
 //***********************************************************************************************
 
-var addr = flag.String("addr", ":80", "http service address")
+var addr = flag.String("addr", ":8080", "http service address")
 
 var tpl *template.Template
 
@@ -202,6 +202,7 @@ func socketHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// create the new client
-	sid, _ := ActiveSession(res, req)
-	NewClient(sid, room, conn)
+	uid, _ := ActiveSession(res, req)
+	guestName := GetGuestName(res, req)
+	NewClient(uid, guestName, room, conn)
 }

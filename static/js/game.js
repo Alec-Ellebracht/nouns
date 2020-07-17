@@ -136,9 +136,9 @@ $(document).ready(function () {
                 if (data.isCorrect) {
                     
                     UIkit.notification({
-                        message: 'The correct answer is "'+data.text+'"',
+                        message: 'The correct answer is "'+data.noun+'"',
                         status: 'primary',
-                        pos: 'top-right',
+                        pos: 'bottom-right',
                         timeout: 5000
                     });
                 }
@@ -151,14 +151,24 @@ $(document).ready(function () {
                 $('#current-noun').html(data.text);
                 break;
 
-            case 'player':
+            case 'action':
 
                 UIkit.notification({
                     message: data.body,
                     status: 'primary',
                     pos: 'top-right',
-                    timeout: 5000
+                    timeout: 1000
                 });
+
+                let alias = 
+                    data.player.name.slice(0, 2).toUpperCase();
+
+                // upate player badge
+                let playerBadge = 
+                    '<div class="uk-icon-button uk-margin-small-left uk-margin-small-bottom" >'+alias+'</div>'; 
+                
+                $('#player-icons').append(playerBadge);
+
                 break;
 
             case 'start':

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -24,16 +23,17 @@ var lastClean = time.Now()
 // NewClient checks the session id cookie to see if the client
 // already has an open session and either connects them back to
 // their open session or creates a new one
-func NewClient(sid string, room *Room, conn *websocket.Conn) {
+func NewClient(uid string, name string, room *Room, conn *websocket.Conn) {
 
 	client := &Client{
-		room: room,
-		conn: conn,
-		sid:  sid,
-		send: make(chan interface{}),
+		room:   room,
+		conn:   conn,
+		UserID: uid,
+		Name:   name,
+		send:   make(chan interface{}),
 	}
 
-	sessions[sid] = &Session{client, time.Now()}
+	sessions[uid] = &Session{client, time.Now()}
 
 	// check into the room
 	room.checkin <- client
@@ -45,16 +45,29 @@ func NewClient(sid string, room *Room, conn *websocket.Conn) {
 }
 
 // AddCookies gets the uuid session id if it exists in the cookies
-// else it will add a new session id along with the users chosen nickname
+// else it will add a new session id along with the users chosen guestname
 func AddCookies(res http.ResponseWriter, req *http.Request) {
 	addGuestName(res, req)
-	addSessionID(res, req)
+	addUserID(res, req)
 }
 
 // ActiveSession checks to see if the vistor has a session id or not
 func ActiveSession(res http.ResponseWriter, req *http.Request) (string, bool) {
-	sid, err := req.Cookie("sid")
-	return sid.Value, err == nil
+	userID, err := req.Cookie("uid")
+	if err != nil {
+		log.Println("Error reading cookie for uid", err)
+	}
+	return userID.Value, err == nil
+}
+
+// GetGuestName gets the guestname for the guest
+func GetGuestName(res http.ResponseWriter, req *http.Request) string {
+	cookie, err := req.Cookie("guestname")
+	if err != nil {
+		log.Println("Error reading cookie for guestname", err)
+		return "annonymous"
+	}
+	return cookie.Value
 }
 
 //***********************************************************************************************
@@ -131,7 +144,7 @@ func reader(client *Client) {
 				return
 			}
 
-			if client.room.CurrGame.Presenter.client.sid == client.sid {
+			if client.room.CurrGame.Presenter.UserID == client.UserID {
 
 				hint := message.Message
 				client.room.publish <- &Hint{
@@ -144,7 +157,7 @@ func reader(client *Client) {
 
 				guess := &Guess{
 					Text:   message.Message,
-					Player: client.name,
+					Player: client.Name,
 					client: client,
 				}
 
@@ -208,9 +221,13 @@ func writer(client *Client) {
 					Type: "start",
 					Body: nil,
 				}
+			case PlayerAction:
+				log.Println("Sending a player action message")
+				env = Envelope{
+					Type: "action",
+					Body: message,
+				}
 			}
-
-			fmt.Println(env)
 
 			err := client.conn.WriteJSON(env)
 			if err != nil {
@@ -221,7 +238,7 @@ func writer(client *Client) {
 	}
 }
 
-// addGuestName adds the nickname for the guest
+// addGuestName adds the guestname for the guest
 func addGuestName(res http.ResponseWriter, req *http.Request) {
 
 	err := req.ParseForm()
@@ -233,7 +250,7 @@ func addGuestName(res http.ResponseWriter, req *http.Request) {
 	// get the guest name from the form
 	// or use annonymous
 	gn := "annonymous"
-	xgn := req.Form["nickname"]
+	xgn := req.Form["guestname"]
 	if len(xgn) > 0 {
 		gn = xgn[0]
 	}
@@ -242,24 +259,24 @@ func addGuestName(res http.ResponseWriter, req *http.Request) {
 		Name:     "guestname",
 		Value:    gn,
 		HttpOnly: true,
-		MaxAge:   -1,
+		MaxAge:   0,
 	}
 
 	http.SetCookie(res, gnc)
 }
 
-// addSessionId adds or bumps out the guests session
-func addSessionID(res http.ResponseWriter, req *http.Request) {
+// addUserId adds or bumps out the guests session
+func addUserID(res http.ResponseWriter, req *http.Request) {
 
-	sid, err := req.Cookie("sid")
+	uid, err := req.Cookie("uid")
 
 	maxSession := int(time.Duration(time.Hour)/time.Second) * 2
 
 	if err == http.ErrNoCookie {
 
-		sid = &http.Cookie{
+		uid = &http.Cookie{
 
-			Name:  "sid",
+			Name:  "uid",
 			Value: uuid.New().String(),
 			// Secure: true,
 			HttpOnly: true,
@@ -268,15 +285,15 @@ func addSessionID(res http.ResponseWriter, req *http.Request) {
 
 	} else if err != nil {
 
-		log.Println("Error checking sid cookie..", err)
+		log.Println("Error checking uid cookie..", err)
 
 	} else {
 
 		// bump out the session
-		sid.MaxAge = maxSession
+		uid.MaxAge = maxSession
 	}
 
-	http.SetCookie(res, sid)
+	http.SetCookie(res, uid)
 
 	// TO DO : put this in a better spot
 	go cleanSessionStorage()
@@ -312,11 +329,11 @@ func cleanSessionStorage() {
 
 // Client is a middleman connection and the room
 type Client struct {
-	room *Room
-	conn *websocket.Conn
-	sid  string
-	name string
-	send chan interface{}
+	room   *Room
+	conn   *websocket.Conn
+	UserID string `json:"userID"`
+	Name   string `json:"name"`
+	send   chan interface{}
 }
 
 // Session tracks the client and the time they were last active
