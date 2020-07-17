@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/url"
 	"sync/atomic"
 )
 
@@ -37,21 +39,42 @@ func CreateRoom() *Room {
 	hotel[newRoom.ID] = newRoom
 
 	game := &Game{
-		room:        newRoom,
-		submissions: []Noun{},
-		currentNoun: nil,
-		submit:      make(chan Noun),
-		guess:       make(chan Guess),
+		Room:      newRoom,
+		Broadcast: newRoom.publish,
 	}
 
 	newRoom.CurrGame = game
-
-	go game.Run()
 
 	// start the room in a routine
 	go newRoom.run()
 
 	return newRoom
+}
+
+// GenerateRoomPath takes a request form and returns a path
+// so that the user can be routed to a room
+// if user does not provide a room # then a new one is created
+func GenerateRoomPath(form url.Values) string {
+
+	var route string
+	var roomID string
+
+	xr := form["room"]
+	if len(xr) > 0 {
+		roomID = xr[0]
+	}
+
+	if len(roomID) > 0 {
+
+		route = fmt.Sprintf("/room/%v", roomID)
+
+	} else {
+
+		newRoom := CreateRoom()
+		route = fmt.Sprintf("/room/%v", newRoom.ID)
+	}
+
+	return route
 }
 
 // GetRoom checks for a specifc room by its id
@@ -84,18 +107,12 @@ func (room *Room) run() {
 
 		case client := <-room.checkin:
 
-			room.clients[client] = true
-
 			log.Println("Client checked in to room..")
-			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
-			// join := struct {
-			// 	Type string
-			// 	Msg  interface{}
-			// }{"player", struct {
-			// 	Msg string `json:"msg"`
-			// }{"Someone else joined the room!"}}
-			// room.publish <- join
+			room.clients[client] = true
+			room.CurrGame.Join(client)
+
+			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
 		case client := <-room.checkout:
 
@@ -108,7 +125,7 @@ func (room *Room) run() {
 			log.Printf("Currently %v connected clients..\n", len(room.clients))
 
 		case message := <-room.publish:
-
+			fmt.Println("room sending to clients", message)
 			for client := range room.clients {
 
 				select {

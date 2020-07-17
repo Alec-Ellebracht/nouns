@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"path"
 	"runtime"
 	"strconv"
@@ -20,7 +18,7 @@ import (
 //
 //***********************************************************************************************
 
-var addr = flag.String("addr", ":80", "http service address")
+var addr = flag.String("addr", ":8080", "http service address")
 
 var tpl *template.Template
 
@@ -79,77 +77,44 @@ func notfoundHandler(res http.ResponseWriter, req *http.Request) {
 	tpl.ExecuteTemplate(res, "notfound.html", nil)
 }
 
-// To upgrade a http connection to a websocket
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	// TO DO : check origin
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+// Handles the admin page
+func adminHandler(res http.ResponseWriter, req *http.Request) {
 
-// Handles incoming websockets requests
-func socketHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
 
-	// TO DO : add req parsing to get a specifc room
-	// or a request to create a new room
-
-	roomPath := path.Base(req.URL.String())
-	roomID, _ := strconv.ParseInt(roomPath, 10, 64)
-	log.Println("Socket attempt to connect to room", roomPath)
-
-	room, ok := GetRoom(roomID)
-	if !ok {
-
-		log.Println("Socket error finding room", roomPath)
-		http.Error(res, "We couldn't find the room you were looking for.", http.StatusNotFound)
-		return
+		http.Redirect(res, req, "/404", http.StatusSeeOther)
 	}
 
-	// upgrade the req to a websocket
-	conn, err := upgrader.Upgrade(res, req, nil)
-
-	if err != nil {
-
-		log.Println("Error upgrading conn to socket", err)
-		http.Error(res, "Uh oh, there was an issue connecting to the host.", http.StatusBadRequest)
-		return
+	adminData := struct {
+		Routines int
+		Cpus     int
+		Rooms    int
+		Sessions int
+	}{
+		runtime.NumGoroutine(),
+		runtime.NumCPU(),
+		len(hotel),
+		len(sessions),
 	}
-	log.Println("Client upgraded to websocket in room", roomID)
 
-	// create the new client
-	sid := CheckAndSetSession(res, req)
-	NewClient(room, conn, sid)
+	tpl.ExecuteTemplate(res, "admin.html", adminData)
 }
 
 // Handles the join page
 func joinHandler(res http.ResponseWriter, req *http.Request) {
 
-	// TO DO : create sessions in a better spot
-	sid := CheckAndSetSession(res, req)
-	log.Printf("Checked sid %T", sid)
-
-	// send an error back if its not a post req
 	if req.Method == http.MethodPost {
 
 		err := req.ParseForm()
 		if err != nil {
 			log.Println("Error parsing Join form", err)
+			http.Error(res, "Oh poop, something went wrong reading your request.", http.StatusBadRequest)
 		}
 
-		guestName := req.Form["nickname"][0]
-		roomID := req.Form["room"][0]
+		AddCookies(res, req)
+		roomPath := GenerateRoomPath(req.Form)
 
-		if len(roomID) > 0 {
-
-			route := fmt.Sprintf("/room/%v?name=%v", roomID, url.QueryEscape(guestName))
-			http.Redirect(res, req, route, http.StatusSeeOther)
-
-		} else {
-
-			newRoom := CreateRoom()
-			route := fmt.Sprintf("/room/%v?name=%v", newRoom.ID, url.QueryEscape(guestName))
-			http.Redirect(res, req, route, http.StatusSeeOther)
-		}
+		http.Redirect(res, req, roomPath, http.StatusSeeOther)
 
 	} else if req.Method == http.MethodGet {
 
@@ -166,24 +131,13 @@ func joinHandler(res http.ResponseWriter, req *http.Request) {
 // Handles the room page
 func roomHandler(res http.ResponseWriter, req *http.Request) {
 
-	sid, activeSession := ActiveSession(res, req)
+	_, isActive := ActiveSession(res, req)
 
-	if !activeSession {
+	if !isActive {
 
 		http.Redirect(res, req, "/join", http.StatusSeeOther)
 
 	} else if req.Method == http.MethodGet {
-
-		keys, ok := req.URL.Query()["name"]
-
-		if !ok || len(keys[0]) < 1 {
-
-			log.Println("Missing client name")
-			keys[0] = "annonymous"
-		}
-
-		name := keys[0]
-		SetName(sid, name)
 
 		roomPath := path.Base(req.URL.Path)
 		roomID, _ := strconv.ParseInt(roomPath, 10, 64)
@@ -207,25 +161,48 @@ func roomHandler(res http.ResponseWriter, req *http.Request) {
 	return
 }
 
-// Handles the admin page
-func adminHandler(res http.ResponseWriter, req *http.Request) {
+// To upgrade a http connection to a websocket
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	// TO DO : check origin
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
-	if req.Method != http.MethodGet {
+// Handles incoming websockets requests
+func socketHandler(res http.ResponseWriter, req *http.Request) {
 
-		http.Redirect(res, req, "/404", http.StatusSeeOther)
+	roomPath := path.Base(req.URL.String())
+	roomID, _ := strconv.ParseInt(roomPath, 10, 64)
+	log.Println("Socket attempt to connect to room", roomPath)
+
+	// upgrade the req to a websocket
+	conn, err := upgrader.Upgrade(res, req, nil)
+
+	if err != nil {
+
+		log.Println("Error upgrading conn to socket", err)
+		http.Error(res, "Uh oh, there was an issue connecting to the host.", http.StatusBadRequest)
+		return
+	}
+	log.Println("Client upgraded to websocket in room", roomID)
+
+	room, ok := GetRoom(roomID)
+	if !ok {
+
+		log.Println("Socket error finding room", roomPath)
+
+		conn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "We couldn't find the room you were looking for."))
+
+		conn.Close()
+
+		return
 	}
 
-	adminData := struct {
-		Routines int
-		Cpus     int
-		Rooms    int
-		Sessions int
-	}{
-		runtime.NumGoroutine(),
-		runtime.NumCPU(),
-		len(hotel),
-		len(sessions),
-	}
-
-	tpl.ExecuteTemplate(res, "admin.html", adminData)
+	// create the new client
+	uid, _ := ActiveSession(res, req)
+	guestName := GetGuestName(res, req)
+	NewClient(uid, guestName, room, conn)
 }

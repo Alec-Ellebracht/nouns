@@ -1,68 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"math/rand"
 	"regexp"
 	"strings"
+	"time"
 )
-
-//***********************************************************************************************
-//
-// External Funcs
-//
-//***********************************************************************************************
-
-// Run starts the game
-func (game *Game) Run() {
-
-	defer cleanupGame(game)
-	for {
-
-		select {
-
-		case noun := <-game.submit:
-
-			game.submissions = append(game.submissions, noun)
-			if game.currentNoun == nil {
-				game.currentNoun = &noun
-			}
-
-			log.Printf("Noun %v submitted to game..", noun.Text)
-
-		case guess := <-game.guess:
-
-			guess.IsCorrect = game.currentNoun.is(guess.Text)
-			log.Printf("Is guess %v equal to %v? %v", guess.Text, game.currentNoun.Text, guess.IsCorrect)
-
-			// go func() {
-			// 	game.room.publish <- guess
-			// }()
-
-		case hint := <-game.hint:
-			fmt.Println(hint)
-
-			// go func() {
-			// 	game.room.publish <- hint
-			// }()
-		}
-	}
-}
-
-//***********************************************************************************************
-//
-// Enums
-//
-//***********************************************************************************************
-
-func cleanupGame(game *Game) {
-
-	log.Println("Cleaning up the game...")
-
-	close(game.submit)
-	close(game.guess)
-	close(game.hint)
-}
 
 //***********************************************************************************************
 //
@@ -74,10 +18,16 @@ func cleanupGame(game *Game) {
 // this is a Person, Place or Thing
 type NounType string
 
+// Action is an action that
+// can be performed by players
+type Action string
+
 const (
 	Person NounType = "person"
 	Place  NounType = "place"
 	Thing  NounType = "thing"
+	Join   Action   = "join"
+	Leave  Action   = "leave"
 )
 
 //***********************************************************************************************
@@ -88,60 +38,152 @@ const (
 
 // Game struct
 type Game struct {
-	room          *Room
-	submissions   []Noun
-	currentNoun   *Noun
-	currentPlayer *Client
-	submit        chan Noun
-	guess         chan Guess
-	hint          chan Hint
+	Room         *Room
+	Nouns        Bowl
+	Players      Group
+	Presenter    *Player
+	Host         *Player
+	CurrentNoun  *Noun
+	IsStarted    bool
+	StartingTime time.Duration
+	Rounds       int
+	Broadcast    chan interface{}
 }
 
-func (game *Game) nextPlayer() *Client {
+// NewGame constructor for a game
+func NewGame(host *Player) Game {
 
-	var first *Client
-	for client := range game.room.clients {
-		first = client
-		break
+	game := Game{
+		Nouns:        Bowl{},
+		Players:      Group{},
+		Presenter:    nil,
+		Host:         host,
+		CurrentNoun:  nil,
+		StartingTime: 3,
+		Rounds:       3,
+		Broadcast:    make(chan interface{}),
 	}
-
-	isNext := false
-	for client := range game.room.clients {
-
-		if client == game.currentPlayer {
-			isNext = true
-		}
-
-		if isNext {
-			return client
-		}
-	}
-
-	return first
+	return game
 }
 
-func (game *Game) nextNoun() Noun {
+// Start begins the game
+func (g *Game) Start() {
 
-	first := game.submissions[0]
-
-	isNext := false
-	for _, noun := range game.submissions {
-
-		if isNext {
-			return noun
-		}
-
-		if noun.Text == game.currentNoun.Text {
-			isNext = true
-		}
+	// skip if we've already started this game
+	if g.IsStarted {
+		return
 	}
 
-	return first
+	g.IsStarted = true
+	g.Players.Shuffle()
+	g.Nouns.Shuffle()
+
+	g.Presenter = g.Players.First()
+	g.CurrentNoun = g.Nouns.First()
+
+	g.Broadcast <- Start{true}
+
+	// browser kills the socket if we
+	// send 2 messages rapid fire so delay
+	time.Sleep(time.Millisecond * 500)
+	g.Presenter.send <- g.CurrentNoun
+
 }
 
-// func (game *Game) nextRound() Noun {
-// 	return game.submissions[0]
-// }
+// DoGuess checks the guess against the current noun
+func (g *Game) DoGuess(guess *Guess) {
+
+	// check the guess
+	if g.CurrentNoun.Is(guess.Text) {
+
+		guess.IsCorrect = true
+		guess.Noun = g.CurrentNoun.Text
+	}
+
+	// send out the results
+	g.broadcast(guess)
+
+	// if it was correct send the next noun
+	if guess.IsCorrect {
+
+		time.Sleep(time.Millisecond * 500)
+		g.CurrentNoun = g.Nouns.Next()
+		g.Presenter.send <- g.CurrentNoun
+	}
+}
+
+// DoPass moves to the next noun in the bowl
+func (g *Game) DoPass() {
+
+	g.CurrentNoun = g.Nouns.Next()
+	g.Presenter.send <- g.CurrentNoun
+}
+
+// Join adds the client as a player
+func (g *Game) Join(c *Client) {
+
+	p := &Player{Client: c}
+	g.Players.Add(p)
+
+	// let everyone know who joined
+	g.broadcast(PlayerAction{
+		Player: *p,
+		Action: Join,
+	})
+}
+
+// broadcast sends the payload to the channel
+func (g *Game) broadcast(i interface{}) {
+
+	go func() {
+		g.Broadcast <- i
+	}()
+}
+
+// Bowl struct
+type Bowl struct {
+	Current int
+	All     []Noun
+	Guessed []Noun
+}
+
+// First gets the starting item in the slice
+func (b *Bowl) First() *Noun {
+	if len(b.All) == 0 {
+		log.Fatalln("Cannot call first without adding nouns to the bowl.")
+	}
+	return &b.All[0]
+}
+
+// Next gets the next item in the slice
+func (b *Bowl) Next() *Noun {
+	if b.Current == len(b.All)-1 {
+		b.Current = 0
+	} else {
+		b.Current++
+	}
+	return &b.All[b.Current]
+}
+
+// Shuffle randomizes the slice
+func (b *Bowl) Shuffle() {
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(b.All),
+		func(i, j int) { b.All[i], b.All[j] = b.All[j], b.All[i] })
+}
+
+// Add appends an item to the list
+// chucks blanks and 1 char words
+func (b *Bowl) Add(nouns ...Noun) {
+
+	for _, n := range nouns {
+		if len(n.Text) > 1 {
+
+			b.All = append(b.All, n)
+		}
+	}
+}
 
 // Noun struct
 type Noun struct {
@@ -149,23 +191,20 @@ type Noun struct {
 	Text string   `json:"text"`
 }
 
-// PrintType prints out the type of Noun
-// this is a Person, Place or Thing
-func (n Noun) PrintType() string {
-	return string(n.Type)
-}
-
 // Is compares the noun with the provided value
 // and returns true if it is a match
-func (n Noun) is(s string) bool {
+func (n Noun) Is(s string) bool {
 
 	nonLetter, err := regexp.Compile(`[^\w]`)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	noun := nonLetter.ReplaceAllString(strings.ToLower(n.Text), " ")
-	guess := nonLetter.ReplaceAllString(strings.ToLower(s), " ")
+	noun := nonLetter.ReplaceAllString(
+		strings.ToLower(n.Text), " ")
+
+	guess := nonLetter.ReplaceAllString(
+		strings.ToLower(s), " ")
 
 	// exact match
 	if noun == guess {
@@ -183,6 +222,60 @@ func (n Noun) is(s string) bool {
 	}
 
 	return match
+}
+
+// Player struct
+type Player struct {
+	*Client
+	Score int `json:"score"`
+}
+
+// PlayerAction composite
+type PlayerAction struct {
+	Player `json:"player"`
+	Action `json:"action"`
+}
+
+// IncrementScore adds to the players current score
+func (p *Player) IncrementScore(i int) {
+	p.Score += i
+}
+
+// Group struct
+type Group struct {
+	Current int
+	All     []*Player
+}
+
+// First gets the starting item in the slice
+func (g *Group) First() *Player {
+	if len(g.All) == 0 {
+		log.Fatalln("Cannot call first without adding players to the group.")
+	}
+	return g.All[0]
+}
+
+// Next gets the next item in the slice
+func (g *Group) Next() *Player {
+	if g.Current == len(g.All)-1 {
+		g.Current = 0
+	} else {
+		g.Current++
+	}
+	return g.All[g.Current]
+}
+
+// Shuffle randomizes the slice
+func (g *Group) Shuffle() {
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(g.All),
+		func(i, j int) { g.All[i], g.All[j] = g.All[j], g.All[i] })
+}
+
+// Add appends an item to the list
+func (g *Group) Add(others ...*Player) {
+	g.All = append(g.All, others...)
 }
 
 // Guess struct
@@ -203,5 +296,5 @@ type Hint struct {
 
 // Start struct
 type Start struct {
-	IsStarted bool `json:"isStarted"`
+	IsStarted bool
 }

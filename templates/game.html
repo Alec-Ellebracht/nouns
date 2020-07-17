@@ -56,8 +56,17 @@
     </div>
 
     <hr>
-    <p><strong>Room</strong>: {{.ID}}<br>
-    <strong>Noun</strong>:&nbsp;<span id="current-noun"></span></p>
+    <div class="uk-child-width-expand" uk-grid>
+        <div>
+            <ul>
+                <li><strong>Room</strong>: {{.ID}}</li>
+                <li><strong>Noun</strong>:&nbsp;<span id="current-noun"></span></li>
+            </ul>
+        </div>
+        <div id="player-icons" class="uk-text-right">
+            <!-- TO DO : initalize with current room players -->
+        </div>
+    </div>
 </div>
 <script src="/resource/js/game.js"></script>
 {{end}}

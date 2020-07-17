@@ -20,6 +20,8 @@
                         name="person" 
                         placeholder="Name a person or character" 
                         class="uk-input"
+                        minlength="2"
+                        maxlength="100"
                         required ><br>
                 </div>
 
@@ -30,6 +32,8 @@
                         name="place" 
                         placeholder="Name a place or location" 
                         class="uk-input"
+                        minlength="2"
+                        maxlength="100"
                         required ><br>
                 </div>
 
@@ -40,6 +44,8 @@
                         name="thing" 
                         placeholder="Name any item, animal, etc.." 
                         class="uk-input"
+                        minlength="2"
+                        maxlength="100"
                         required ><br>
                 </div>
 
@@ -72,9 +78,15 @@
             //  quick form validation
             if (!$('#noun-form')[0].checkValidity()) {
 
-                if (!person) { $('#person').addClass('uk-form-danger'); }
-                if (!place) { $('#place').addClass('uk-form-danger'); }
-                if (!thing) { $('#thing').addClass('uk-form-danger'); }
+                if (!person || person.length <= 1 || person.length >= 100) { 
+                    $('#person').addClass('uk-form-danger'); 
+                }
+                if (!place || place.length <= 1 || place.length >= 100) { 
+                    $('#place').addClass('uk-form-danger'); 
+                }
+                if (!thing || thing.length <= 1 || thing.length >= 100) { 
+                    $('#thing').addClass('uk-form-danger'); 
+                }
 
                 return;
             }
