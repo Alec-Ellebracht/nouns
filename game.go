@@ -45,7 +45,7 @@ type Game struct {
 	Host         *Player
 	CurrentNoun  *Noun
 	IsStarted    bool
-	StartingTime time.Duration
+	RoundMinutes time.Duration
 	Rounds       int
 	Broadcast    chan interface{}
 }
@@ -59,7 +59,7 @@ func NewGame(host *Player) Game {
 		Presenter:    nil,
 		Host:         host,
 		CurrentNoun:  nil,
-		StartingTime: 3,
+		RoundMinutes: 3,
 		Rounds:       3,
 		Broadcast:    make(chan interface{}),
 	}
@@ -81,7 +81,10 @@ func (g *Game) Start() {
 	g.Presenter = g.Players.First()
 	g.CurrentNoun = g.Nouns.First()
 
-	g.Broadcast <- Start{true}
+	now := time.Now()
+	duration := time.Duration(time.Minute * 3)
+
+	g.Broadcast <- Start{time.Time.Add(now, duration)}
 
 	// browser kills the socket if we
 	// send 2 messages rapid fire so delay
@@ -296,5 +299,5 @@ type Hint struct {
 
 // Start struct
 type Start struct {
-	IsStarted bool
+	RoundEnd time.Time `json:"roundEnd"`
 }

@@ -175,6 +175,7 @@ $(document).ready(function () {
 
                 $('.start-btn').hide();
                 $('#loading-spinner').show();
+                setRoundTimer(data.roundEnd);
                 break;
 
             default: 
@@ -190,4 +191,31 @@ $(document).ready(function () {
         this.conn.send(envelope);
     }
 
+    // sets the countdown timer for the round
+    function setRoundTimer(roundEnd) {
+
+        console.log(roundEnd);
+
+        // Set the date we're counting down to
+        let countDownDate = new Date(roundEnd).getTime() ;
+
+        // Update the count down every 1 second
+        let counter = setInterval(function() {
+
+            let now = new Date().getTime();
+            let distance = countDownDate - now;
+
+            let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            let zero = seconds < 10 ? '0' : '';
+                
+            document.getElementById("current-time").innerHTML = minutes + ":" + zero + seconds;
+                
+            // stop once the timer is over
+            if (distance < 0) {
+                clearInterval(counter);
+                document.getElementById("current-time").innerHTML = "Round Over";
+            }
+        }, 1000);
+    }
 });

@@ -219,7 +219,7 @@ func writer(client *Client) {
 				log.Println("Sending a start message")
 				env = Envelope{
 					Type: "start",
-					Body: nil,
+					Body: message,
 				}
 			case PlayerAction:
 				log.Println("Sending a player action message")
