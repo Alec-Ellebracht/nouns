@@ -100,13 +100,6 @@ $(document).ready(function () {
         element.val('');
     });
 
-    // binds the enter key to the player input text box
-    $(document).keypress(function(e){
-        if (e.which == 13){
-            $("#player-send-btn").click();
-        }
-    });
-
     // handles all the incoming socket messages
     function handleMessage(envelope) {
 
@@ -176,6 +169,8 @@ $(document).ready(function () {
                 $('.start-btn').hide();
                 $('#loading-spinner').show();
                 setRoundTimer(data.roundEnd);
+                bindGameKeys();
+
                 break;
 
             default: 
@@ -217,5 +212,16 @@ $(document).ready(function () {
                 document.getElementById("current-time").innerHTML = "Round Over";
             }
         }, 1000);
+    }
+
+    // bind game play keys
+    function bindGameKeys() {
+
+        // binds the enter key to the player input text box
+        $(document).keypress(function(e){
+            if (e.which == 13){
+                $("#player-send-btn").click();
+            }
+        });
     }
 });

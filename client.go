@@ -100,6 +100,7 @@ func reader(client *Client) {
 			return
 		}
 		log.Printf("Received %v type payload..", env.Type)
+		log.Printf("Received %v payload..", env)
 
 		switch env.Type {
 
