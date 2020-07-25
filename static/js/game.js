@@ -146,21 +146,26 @@ $(document).ready(function () {
 
             case 'action':
 
-                UIkit.notification({
-                    message: data.body,
-                    status: 'primary',
-                    pos: 'top-right',
-                    timeout: 1000
-                });
+                let allBadges;
+                $('#player-icons').empty();
 
-                let alias = 
-                    data.player.name.slice(0, 2).toUpperCase();
+                for (i in data.players) {
 
-                // upate player badge
-                let playerBadge = 
-                    '<div class="uk-icon-button uk-margin-small-left uk-margin-small-bottom" >'+alias+'</div>'; 
+                    let player = data.players[i];
+
+                    console.log(player);
+    
+                    let alias = 
+                        player.name.slice(0, 2).toUpperCase();
+    
+                    // upate player badge
+                    let playerBadge = 
+                        '<div class="uk-icon-button uk-margin-small-left uk-margin-small-bottom" >'+alias+'</div>'; 
+
+                    // allBadges += playerBadge;
+                    $('#player-icons').append(playerBadge);
+                }
                 
-                $('#player-icons').append(playerBadge);
 
                 break;
 

@@ -130,8 +130,9 @@ func (g *Game) Join(c *Client) {
 
 	// let everyone know who joined
 	g.broadcast(PlayerAction{
-		Player: *p,
-		Action: Join,
+		Player:  *p,
+		Action:  Join,
+		Players: g.Players.All,
 	})
 }
 
@@ -221,6 +222,7 @@ func (n Noun) Is(s string) bool {
 
 		if noun == word {
 			match = true
+			break
 		}
 	}
 
@@ -235,8 +237,9 @@ type Player struct {
 
 // PlayerAction composite
 type PlayerAction struct {
-	Player `json:"player"`
-	Action `json:"action"`
+	Player  `json:"player"`
+	Action  `json:"action"`
+	Players []*Player `json:"players"`
 }
 
 // IncrementScore adds to the players current score
