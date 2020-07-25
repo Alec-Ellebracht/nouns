@@ -146,26 +146,17 @@ $(document).ready(function () {
 
             case 'action':
 
-                let allBadges;
                 $('#player-icons').empty();
 
                 for (i in data.players) {
 
                     let player = data.players[i];
-
-                    console.log(player);
-    
-                    let alias = 
-                        player.name.slice(0, 2).toUpperCase();
-    
-                    // upate player badge
+                    let alias = player.name.slice(0, 2).toUpperCase();
                     let playerBadge = 
                         '<div class="uk-icon-button uk-margin-small-left uk-margin-small-bottom" >'+alias+'</div>'; 
 
-                    // allBadges += playerBadge;
                     $('#player-icons').append(playerBadge);
                 }
-                
 
                 break;
 
@@ -183,12 +174,6 @@ $(document).ready(function () {
                 console.log('~~~ hmm something unexpected happened..');
           }
 
-    }
-
-    // starts the game
-    function sendEnvelope(envelope) {
-
-        this.conn.send(envelope);
     }
 
     // sets the countdown timer for the round
@@ -228,5 +213,11 @@ $(document).ready(function () {
                 $("#player-send-btn").click();
             }
         });
+    }
+
+    // starts the game
+    function sendEnvelope(envelope) {
+
+        this.conn.send(envelope);
     }
 });
