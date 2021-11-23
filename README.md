@@ -1,6 +1,6 @@
 # nouns
 
-A game about guessing nouns with you friends. 
+A game about guessing nouns with your friends. 
 
 ## Setup
 
